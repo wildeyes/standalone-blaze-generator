@@ -1376,6 +1376,7 @@ Meteor = {
    * @summary Boolean variable.  True if running in client environment.
    * @locus Anywhere
    * @static
+   * @type {Boolean}
    */
   isClient: true,
 
@@ -1383,6 +1384,7 @@ Meteor = {
    * @summary Boolean variable.  True if running in server environment.
    * @locus Anywhere
    * @static
+   * @type {Boolean}
    */
   isServer: false
 };
@@ -1392,6 +1394,7 @@ if (typeof __meteor_runtime_config__ === 'object' &&
   /**
    * @summary `Meteor.settings` contains deployment-specific configuration options. You can initialize settings by passing the `--settings` option (which takes the name of a file containing JSON data) to `meteor run` or `meteor deploy`. When running your server directly (e.g. from a bundle), you instead specify settings by putting the JSON directly into the `METEOR_SETTINGS` environment variable. If you don't provide any settings, `Meteor.settings` will be an empty object.  If the settings object contains a key named `public`, then `Meteor.settings.public` will be available on the client as well as the server.  All other properties of `Meteor.settings` are only defined on the server.
    * @locus Anywhere
+   * @type {Object}
    */
   Meteor.settings = { 'public': __meteor_runtime_config__.PUBLIC_SETTINGS };
 }
@@ -1415,6 +1418,7 @@ if (typeof __meteor_runtime_config__ === 'object' &&
   /**
    * @summary `Meteor.release` is a string containing the name of the [release](#meteorupdate) with which the project was built (for example, `"1.2.3"`). It is `undefined` if the project was built using a git checkout of Meteor.
    * @locus Anywhere
+   * @type {String}
    */
   Meteor.release = __meteor_runtime_config__.meteorRelease;
 }
@@ -2285,7 +2289,7 @@ Meteor._nodeCodeMustBeInFiber = function () {
 
                                                                                                           //
 /**
- * @summary Generate an absolute URL pointing to the application. The server reads from the `ROOT_URL` environment variable to determine where it is running. This is taken care of automatically for apps deployed with `meteor deploy`, but must be provided when using `meteor bundle`.
+ * @summary Generate an absolute URL pointing to the application. The server reads from the `ROOT_URL` environment variable to determine where it is running. This is taken care of automatically for apps deployed with `meteor deploy`, but must be provided when using `meteor build`.
  * @locus Anywhere
  * @param {String} [path] A path to append to the root URL. Do not include a leading "`/`".
  * @param {Object} [options]
@@ -2396,7 +2400,7 @@ var $, jQuery;
 
                                                                                                                      //
 /*!
- * jQuery JavaScript Library v1.11.0
+ * jQuery JavaScript Library v1.11.2
  * http://jquery.com/
  *
  * Includes Sizzle.js
@@ -2406,7 +2410,7 @@ var $, jQuery;
  * Released under the MIT license
  * http://jquery.org/license
  *
- * Date: 2014-01-23T21:02Z
+ * Date: 2014-12-17T15:27Z
  */
 
 (function( global, factory ) {
@@ -2456,14 +2460,12 @@ var toString = class2type.toString;
 
 var hasOwn = class2type.hasOwnProperty;
 
-var trim = "".trim;
-
 var support = {};
 
 
 
 var
-	version = "1.11.0",
+	version = "1.11.2",
 
 	// Define a local copy of jQuery
 	jQuery = function( selector, context ) {
@@ -2472,7 +2474,8 @@ var
 		return new jQuery.fn.init( selector, context );
 	},
 
-	// Make sure we trim BOM and NBSP (here's looking at you, Safari 5.0 and IE)
+	// Support: Android<4.1, IE<9
+	// Make sure we trim BOM and NBSP
 	rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g,
 
 	// Matches dashed string for camelizing
@@ -2505,10 +2508,10 @@ jQuery.fn = jQuery.prototype = {
 	get: function( num ) {
 		return num != null ?
 
-			// Return a 'clean' array
+			// Return just the one element from the set
 			( num < 0 ? this[ num + this.length ] : this[ num ] ) :
 
-			// Return just the object
+			// Return all the elements in a clean array
 			slice.call( this );
 	},
 
@@ -2667,7 +2670,8 @@ jQuery.extend({
 		// parseFloat NaNs numeric-cast false positives (null|true|false|"")
 		// ...but misinterprets leading-number strings, particularly hex literals ("0x...")
 		// subtraction forces infinities to NaN
-		return obj - parseFloat( obj ) >= 0;
+		// adding 1 corrects loss of precision from parseFloat (#15100)
+		return !jQuery.isArray( obj ) && (obj - parseFloat( obj ) + 1) >= 0;
 	},
 
 	isEmptyObject: function( obj ) {
@@ -2798,20 +2802,12 @@ jQuery.extend({
 		return obj;
 	},
 
-	// Use native String.trim function wherever possible
-	trim: trim && !trim.call("\uFEFF\xA0") ?
-		function( text ) {
-			return text == null ?
-				"" :
-				trim.call( text );
-		} :
-
-		// Otherwise use our own trimming functionality
-		function( text ) {
-			return text == null ?
-				"" :
-				( text + "" ).replace( rtrim, "" );
-		},
+	// Support: Android<4.1, IE<9
+	trim: function( text ) {
+		return text == null ?
+			"" :
+			( text + "" ).replace( rtrim, "" );
+	},
 
 	// results is for internal usage only
 	makeArray: function( arr, results ) {
@@ -2990,14 +2986,14 @@ function isArraylike( obj ) {
 }
 var Sizzle =
 /*!
- * Sizzle CSS Selector Engine v1.10.16
+ * Sizzle CSS Selector Engine v2.2.0-pre
  * http://sizzlejs.com/
  *
- * Copyright 2013 jQuery Foundation, Inc. and other contributors
+ * Copyright 2008, 2014 jQuery Foundation, Inc. and other contributors
  * Released under the MIT license
  * http://jquery.org/license
  *
- * Date: 2014-01-13
+ * Date: 2014-12-16
  */
 (function( window ) {
 
@@ -3006,7 +3002,9 @@ var i,
 	Expr,
 	getText,
 	isXML,
+	tokenize,
 	compile,
+	select,
 	outermostContext,
 	sortInput,
 	hasDuplicate,
@@ -3022,7 +3020,7 @@ var i,
 	contains,
 
 	// Instance-specific data
-	expando = "sizzle" + -(new Date()),
+	expando = "sizzle" + 1 * new Date(),
 	preferredDoc = window.document,
 	dirruns = 0,
 	done = 0,
@@ -3037,7 +3035,6 @@ var i,
 	},
 
 	// General-purpose constants
-	strundefined = typeof undefined,
 	MAX_NEGATIVE = 1 << 31,
 
 	// Instance methods
@@ -3047,12 +3044,13 @@ var i,
 	push_native = arr.push,
 	push = arr.push,
 	slice = arr.slice,
-	// Use a stripped-down indexOf if we can't use a native one
-	indexOf = arr.indexOf || function( elem ) {
+	// Use a stripped-down indexOf as it's faster than native
+	// http://jsperf.com/thor-indexof-vs-for/5
+	indexOf = function( list, elem ) {
 		var i = 0,
-			len = this.length;
+			len = list.length;
 		for ( ; i < len; i++ ) {
-			if ( this[i] === elem ) {
+			if ( list[i] === elem ) {
 				return i;
 			}
 		}
@@ -3073,19 +3071,26 @@ var i,
 	// Proper syntax: http://www.w3.org/TR/CSS21/syndata.html#value-def-identifier
 	identifier = characterEncoding.replace( "w", "w#" ),
 
-	// Acceptable operators http://www.w3.org/TR/selectors/#attribute-selectors
-	attributes = "\\[" + whitespace + "*(" + characterEncoding + ")" + whitespace +
-		"*(?:([*^$|!~]?=)" + whitespace + "*(?:(['\"])((?:\\\\.|[^\\\\])*?)\\3|(" + identifier + ")|)|)" + whitespace + "*\\]",
+	// Attribute selectors: http://www.w3.org/TR/selectors/#attribute-selectors
+	attributes = "\\[" + whitespace + "*(" + characterEncoding + ")(?:" + whitespace +
+		// Operator (capture 2)
+		"*([*^$|!~]?=)" + whitespace +
+		// "Attribute values must be CSS identifiers [capture 5] or strings [capture 3 or capture 4]"
+		"*(?:'((?:\\\\.|[^\\\\'])*)'|\"((?:\\\\.|[^\\\\\"])*)\"|(" + identifier + "))|)" + whitespace +
+		"*\\]",
 
-	// Prefer arguments quoted,
-	//   then not containing pseudos/brackets,
-	//   then attribute selectors/non-parenthetical expressions,
-	//   then anything else
-	// These preferences are here to reduce the number of selectors
-	//   needing tokenize in the PSEUDO preFilter
-	pseudos = ":(" + characterEncoding + ")(?:\\(((['\"])((?:\\\\.|[^\\\\])*?)\\3|((?:\\\\.|[^\\\\()[\\]]|" + attributes.replace( 3, 8 ) + ")*)|.*)\\)|)",
+	pseudos = ":(" + characterEncoding + ")(?:\\((" +
+		// To reduce the number of selectors needing tokenize in the preFilter, prefer arguments:
+		// 1. quoted (capture 3; capture 4 or capture 5)
+		"('((?:\\\\.|[^\\\\'])*)'|\"((?:\\\\.|[^\\\\\"])*)\")|" +
+		// 2. simple (capture 6)
+		"((?:\\\\.|[^\\\\()[\\]]|" + attributes + ")*)|" +
+		// 3. anything else (capture 2)
+		".*" +
+		")\\)|)",
 
 	// Leading and non-escaped trailing whitespace, capturing some non-whitespace characters preceding the latter
+	rwhitespace = new RegExp( whitespace + "+", "g" ),
 	rtrim = new RegExp( "^" + whitespace + "+|((?:^|[^\\\\])(?:\\\\.)*)" + whitespace + "+$", "g" ),
 
 	rcomma = new RegExp( "^" + whitespace + "*," + whitespace + "*" ),
@@ -3128,7 +3133,7 @@ var i,
 	funescape = function( _, escaped, escapedWhitespace ) {
 		var high = "0x" + escaped - 0x10000;
 		// NaN means non-codepoint
-		// Support: Firefox
+		// Support: Firefox<24
 		// Workaround erroneous numeric interpretation of +"0x"
 		return high !== high || escapedWhitespace ?
 			escaped :
@@ -3137,6 +3142,14 @@ var i,
 				String.fromCharCode( high + 0x10000 ) :
 				// Supplemental Plane codepoint (surrogate pair)
 				String.fromCharCode( high >> 10 | 0xD800, high & 0x3FF | 0xDC00 );
+	},
+
+	// Used for iframes
+	// See setDocument()
+	// Removing the function wrapper causes a "Permission Denied"
+	// error in IE
+	unloadHandler = function() {
+		setDocument();
 	};
 
 // Optimize for push.apply( _, NodeList )
@@ -3179,19 +3192,18 @@ function Sizzle( selector, context, results, seed ) {
 
 	context = context || document;
 	results = results || [];
+	nodeType = context.nodeType;
 
-	if ( !selector || typeof selector !== "string" ) {
+	if ( typeof selector !== "string" || !selector ||
+		nodeType !== 1 && nodeType !== 9 && nodeType !== 11 ) {
+
 		return results;
 	}
 
-	if ( (nodeType = context.nodeType) !== 1 && nodeType !== 9 ) {
-		return [];
-	}
+	if ( !seed && documentIsHTML ) {
 
-	if ( documentIsHTML && !seed ) {
-
-		// Shortcuts
-		if ( (match = rquickExpr.exec( selector )) ) {
+		// Try to shortcut find operations when possible (e.g., not under DocumentFragment)
+		if ( nodeType !== 11 && (match = rquickExpr.exec( selector )) ) {
 			// Speed-up: Sizzle("#ID")
 			if ( (m = match[1]) ) {
 				if ( nodeType === 9 ) {
@@ -3223,7 +3235,7 @@ function Sizzle( selector, context, results, seed ) {
 				return results;
 
 			// Speed-up: Sizzle(".CLASS")
-			} else if ( (m = match[3]) && support.getElementsByClassName && context.getElementsByClassName ) {
+			} else if ( (m = match[3]) && support.getElementsByClassName ) {
 				push.apply( results, context.getElementsByClassName( m ) );
 				return results;
 			}
@@ -3233,7 +3245,7 @@ function Sizzle( selector, context, results, seed ) {
 		if ( support.qsa && (!rbuggyQSA || !rbuggyQSA.test( selector )) ) {
 			nid = old = expando;
 			newContext = context;
-			newSelector = nodeType === 9 && selector;
+			newSelector = nodeType !== 1 && selector;
 
 			// qSA works strangely on Element-rooted queries
 			// We can work around this by specifying an extra ID on the root
@@ -3420,7 +3432,7 @@ function createPositionalPseudo( fn ) {
  * @returns {Element|Object|Boolean} The input node if acceptable, otherwise a falsy value
  */
 function testContext( context ) {
-	return context && typeof context.getElementsByTagName !== strundefined && context;
+	return context && typeof context.getElementsByTagName !== "undefined" && context;
 }
 
 // Expose support vars for convenience
@@ -3444,9 +3456,8 @@ isXML = Sizzle.isXML = function( elem ) {
  * @returns {Object} Returns the current document
  */
 setDocument = Sizzle.setDocument = function( node ) {
-	var hasCompare,
-		doc = node ? node.ownerDocument || node : preferredDoc,
-		parent = doc.defaultView;
+	var hasCompare, parent,
+		doc = node ? node.ownerDocument || node : preferredDoc;
 
 	// If no document and documentElement is available, return
 	if ( doc === document || doc.nodeType !== 9 || !doc.documentElement ) {
@@ -3456,9 +3467,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 	// Set our document
 	document = doc;
 	docElem = doc.documentElement;
-
-	// Support tests
-	documentIsHTML = !isXML( doc );
+	parent = doc.defaultView;
 
 	// Support: IE>8
 	// If iframe document is assigned to "document" variable and if iframe has been reloaded,
@@ -3467,21 +3476,22 @@ setDocument = Sizzle.setDocument = function( node ) {
 	if ( parent && parent !== parent.top ) {
 		// IE11 does not have attachEvent, so all must suffer
 		if ( parent.addEventListener ) {
-			parent.addEventListener( "unload", function() {
-				setDocument();
-			}, false );
+			parent.addEventListener( "unload", unloadHandler, false );
 		} else if ( parent.attachEvent ) {
-			parent.attachEvent( "onunload", function() {
-				setDocument();
-			});
+			parent.attachEvent( "onunload", unloadHandler );
 		}
 	}
+
+	/* Support tests
+	---------------------------------------------------------------------- */
+	documentIsHTML = !isXML( doc );
 
 	/* Attributes
 	---------------------------------------------------------------------- */
 
 	// Support: IE<8
-	// Verify that getAttribute really returns attributes and not properties (excepting IE8 booleans)
+	// Verify that getAttribute really returns attributes and not properties
+	// (excepting IE8 booleans)
 	support.attributes = assert(function( div ) {
 		div.className = "i";
 		return !div.getAttribute("className");
@@ -3496,17 +3506,8 @@ setDocument = Sizzle.setDocument = function( node ) {
 		return !div.getElementsByTagName("*").length;
 	});
 
-	// Check if getElementsByClassName can be trusted
-	support.getElementsByClassName = rnative.test( doc.getElementsByClassName ) && assert(function( div ) {
-		div.innerHTML = "<div class='a'></div><div class='a i'></div>";
-
-		// Support: Safari<4
-		// Catch class over-caching
-		div.firstChild.className = "i";
-		// Support: Opera<10
-		// Catch gEBCN failure to find non-leading classes
-		return div.getElementsByClassName("i").length === 2;
-	});
+	// Support: IE<9
+	support.getElementsByClassName = rnative.test( doc.getElementsByClassName );
 
 	// Support: IE<10
 	// Check if getElementById returns elements by name
@@ -3520,11 +3521,11 @@ setDocument = Sizzle.setDocument = function( node ) {
 	// ID find and filter
 	if ( support.getById ) {
 		Expr.find["ID"] = function( id, context ) {
-			if ( typeof context.getElementById !== strundefined && documentIsHTML ) {
+			if ( typeof context.getElementById !== "undefined" && documentIsHTML ) {
 				var m = context.getElementById( id );
 				// Check parentNode to catch when Blackberry 4.6 returns
 				// nodes that are no longer in the document #6963
-				return m && m.parentNode ? [m] : [];
+				return m && m.parentNode ? [ m ] : [];
 			}
 		};
 		Expr.filter["ID"] = function( id ) {
@@ -3541,7 +3542,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 		Expr.filter["ID"] =  function( id ) {
 			var attrId = id.replace( runescape, funescape );
 			return function( elem ) {
-				var node = typeof elem.getAttributeNode !== strundefined && elem.getAttributeNode("id");
+				var node = typeof elem.getAttributeNode !== "undefined" && elem.getAttributeNode("id");
 				return node && node.value === attrId;
 			};
 		};
@@ -3550,14 +3551,20 @@ setDocument = Sizzle.setDocument = function( node ) {
 	// Tag
 	Expr.find["TAG"] = support.getElementsByTagName ?
 		function( tag, context ) {
-			if ( typeof context.getElementsByTagName !== strundefined ) {
+			if ( typeof context.getElementsByTagName !== "undefined" ) {
 				return context.getElementsByTagName( tag );
+
+			// DocumentFragment nodes don't have gEBTN
+			} else if ( support.qsa ) {
+				return context.querySelectorAll( tag );
 			}
 		} :
+
 		function( tag, context ) {
 			var elem,
 				tmp = [],
 				i = 0,
+				// By happy coincidence, a (broken) gEBTN appears on DocumentFragment nodes too
 				results = context.getElementsByTagName( tag );
 
 			// Filter out possible comments
@@ -3575,7 +3582,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 
 	// Class
 	Expr.find["CLASS"] = support.getElementsByClassName && function( className, context ) {
-		if ( typeof context.getElementsByClassName !== strundefined && documentIsHTML ) {
+		if ( documentIsHTML ) {
 			return context.getElementsByClassName( className );
 		}
 	};
@@ -3604,11 +3611,15 @@ setDocument = Sizzle.setDocument = function( node ) {
 			// setting a boolean content attribute,
 			// since its presence should be enough
 			// http://bugs.jquery.com/ticket/12359
-			div.innerHTML = "<select t=''><option selected=''></option></select>";
+			docElem.appendChild( div ).innerHTML = "<a id='" + expando + "'></a>" +
+				"<select id='" + expando + "-\f]' msallowcapture=''>" +
+				"<option selected=''></option></select>";
 
-			// Support: IE8, Opera 10-12
+			// Support: IE8, Opera 11-12.16
 			// Nothing should be selected when empty strings follow ^= or $= or *=
-			if ( div.querySelectorAll("[t^='']").length ) {
+			// The test attribute must be unknown in Opera but "safe" for WinRT
+			// http://msdn.microsoft.com/en-us/library/ie/hh465388.aspx#attribute_section
+			if ( div.querySelectorAll("[msallowcapture^='']").length ) {
 				rbuggyQSA.push( "[*^$]=" + whitespace + "*(?:''|\"\")" );
 			}
 
@@ -3618,11 +3629,23 @@ setDocument = Sizzle.setDocument = function( node ) {
 				rbuggyQSA.push( "\\[" + whitespace + "*(?:value|" + booleans + ")" );
 			}
 
+			// Support: Chrome<29, Android<4.2+, Safari<7.0+, iOS<7.0+, PhantomJS<1.9.7+
+			if ( !div.querySelectorAll( "[id~=" + expando + "-]" ).length ) {
+				rbuggyQSA.push("~=");
+			}
+
 			// Webkit/Opera - :checked should return selected option elements
 			// http://www.w3.org/TR/2011/REC-css3-selectors-20110929/#checked
 			// IE8 throws error here and will not see later tests
 			if ( !div.querySelectorAll(":checked").length ) {
 				rbuggyQSA.push(":checked");
+			}
+
+			// Support: Safari 8+, iOS 8+
+			// https://bugs.webkit.org/show_bug.cgi?id=136851
+			// In-page `selector#id sibing-combinator selector` fails
+			if ( !div.querySelectorAll( "a#" + expando + "+*" ).length ) {
+				rbuggyQSA.push(".#.+[+~]");
 			}
 		});
 
@@ -3651,7 +3674,8 @@ setDocument = Sizzle.setDocument = function( node ) {
 		});
 	}
 
-	if ( (support.matchesSelector = rnative.test( (matches = docElem.webkitMatchesSelector ||
+	if ( (support.matchesSelector = rnative.test( (matches = docElem.matches ||
+		docElem.webkitMatchesSelector ||
 		docElem.mozMatchesSelector ||
 		docElem.oMatchesSelector ||
 		docElem.msMatchesSelector) )) ) {
@@ -3739,7 +3763,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 
 			// Maintain original order
 			return sortInput ?
-				( indexOf.call( sortInput, a ) - indexOf.call( sortInput, b ) ) :
+				( indexOf( sortInput, a ) - indexOf( sortInput, b ) ) :
 				0;
 		}
 
@@ -3766,7 +3790,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 				aup ? -1 :
 				bup ? 1 :
 				sortInput ?
-				( indexOf.call( sortInput, a ) - indexOf.call( sortInput, b ) ) :
+				( indexOf( sortInput, a ) - indexOf( sortInput, b ) ) :
 				0;
 
 		// If the nodes are siblings, we can do a quick check
@@ -3829,10 +3853,10 @@ Sizzle.matchesSelector = function( elem, expr ) {
 					elem.document && elem.document.nodeType !== 11 ) {
 				return ret;
 			}
-		} catch(e) {}
+		} catch (e) {}
 	}
 
-	return Sizzle( expr, document, null, [elem] ).length > 0;
+	return Sizzle( expr, document, null, [ elem ] ).length > 0;
 };
 
 Sizzle.contains = function( context, elem ) {
@@ -3961,7 +3985,7 @@ Expr = Sizzle.selectors = {
 			match[1] = match[1].replace( runescape, funescape );
 
 			// Move the given value to match[3] whether quoted or unquoted
-			match[3] = ( match[4] || match[5] || "" ).replace( runescape, funescape );
+			match[3] = ( match[3] || match[4] || match[5] || "" ).replace( runescape, funescape );
 
 			if ( match[2] === "~=" ) {
 				match[3] = " " + match[3] + " ";
@@ -4004,15 +4028,15 @@ Expr = Sizzle.selectors = {
 
 		"PSEUDO": function( match ) {
 			var excess,
-				unquoted = !match[5] && match[2];
+				unquoted = !match[6] && match[2];
 
 			if ( matchExpr["CHILD"].test( match[0] ) ) {
 				return null;
 			}
 
 			// Accept quoted arguments as-is
-			if ( match[3] && match[4] !== undefined ) {
-				match[2] = match[4];
+			if ( match[3] ) {
+				match[2] = match[4] || match[5] || "";
 
 			// Strip excess characters from unquoted arguments
 			} else if ( unquoted && rpseudo.test( unquoted ) &&
@@ -4048,7 +4072,7 @@ Expr = Sizzle.selectors = {
 			return pattern ||
 				(pattern = new RegExp( "(^|" + whitespace + ")" + className + "(" + whitespace + "|$)" )) &&
 				classCache( className, function( elem ) {
-					return pattern.test( typeof elem.className === "string" && elem.className || typeof elem.getAttribute !== strundefined && elem.getAttribute("class") || "" );
+					return pattern.test( typeof elem.className === "string" && elem.className || typeof elem.getAttribute !== "undefined" && elem.getAttribute("class") || "" );
 				});
 		},
 
@@ -4070,7 +4094,7 @@ Expr = Sizzle.selectors = {
 					operator === "^=" ? check && result.indexOf( check ) === 0 :
 					operator === "*=" ? check && result.indexOf( check ) > -1 :
 					operator === "$=" ? check && result.slice( -check.length ) === check :
-					operator === "~=" ? ( " " + result + " " ).indexOf( check ) > -1 :
+					operator === "~=" ? ( " " + result.replace( rwhitespace, " " ) + " " ).indexOf( check ) > -1 :
 					operator === "|=" ? result === check || result.slice( 0, check.length + 1 ) === check + "-" :
 					false;
 			};
@@ -4190,7 +4214,7 @@ Expr = Sizzle.selectors = {
 							matched = fn( seed, argument ),
 							i = matched.length;
 						while ( i-- ) {
-							idx = indexOf.call( seed, matched[i] );
+							idx = indexOf( seed, matched[i] );
 							seed[ idx ] = !( matches[ idx ] = matched[i] );
 						}
 					}) :
@@ -4229,6 +4253,8 @@ Expr = Sizzle.selectors = {
 				function( elem, context, xml ) {
 					input[0] = elem;
 					matcher( input, null, xml, results );
+					// Don't keep the element (issue #299)
+					input[0] = null;
 					return !results.pop();
 				};
 		}),
@@ -4240,6 +4266,7 @@ Expr = Sizzle.selectors = {
 		}),
 
 		"contains": markFunction(function( text ) {
+			text = text.replace( runescape, funescape );
 			return function( elem ) {
 				return ( elem.textContent || elem.innerText || getText( elem ) ).indexOf( text ) > -1;
 			};
@@ -4417,7 +4444,7 @@ function setFilters() {}
 setFilters.prototype = Expr.filters = Expr.pseudos;
 Expr.setFilters = new setFilters();
 
-function tokenize( selector, parseOnly ) {
+tokenize = Sizzle.tokenize = function( selector, parseOnly ) {
 	var matched, match, tokens, type,
 		soFar, groups, preFilters,
 		cached = tokenCache[ selector + " " ];
@@ -4482,7 +4509,7 @@ function tokenize( selector, parseOnly ) {
 			Sizzle.error( selector ) :
 			// Cache the tokens
 			tokenCache( selector, groups ).slice( 0 );
-}
+};
 
 function toSelector( tokens ) {
 	var i = 0,
@@ -4559,6 +4586,15 @@ function elementMatcher( matchers ) {
 			return true;
 		} :
 		matchers[0];
+}
+
+function multipleContexts( selector, contexts, results ) {
+	var i = 0,
+		len = contexts.length;
+	for ( ; i < len; i++ ) {
+		Sizzle( selector, contexts[i], results );
+	}
+	return results;
 }
 
 function condense( unmatched, map, filter, context, xml ) {
@@ -4652,7 +4688,7 @@ function setMatcher( preFilter, selector, matcher, postFilter, postFinder, postS
 				i = matcherOut.length;
 				while ( i-- ) {
 					if ( (elem = matcherOut[i]) &&
-						(temp = postFinder ? indexOf.call( seed, elem ) : preMap[i]) > -1 ) {
+						(temp = postFinder ? indexOf( seed, elem ) : preMap[i]) > -1 ) {
 
 						seed[temp] = !(results[temp] = elem);
 					}
@@ -4687,13 +4723,16 @@ function matcherFromTokens( tokens ) {
 			return elem === checkContext;
 		}, implicitRelative, true ),
 		matchAnyContext = addCombinator( function( elem ) {
-			return indexOf.call( checkContext, elem ) > -1;
+			return indexOf( checkContext, elem ) > -1;
 		}, implicitRelative, true ),
 		matchers = [ function( elem, context, xml ) {
-			return ( !leadingRelative && ( xml || context !== outermostContext ) ) || (
+			var ret = ( !leadingRelative && ( xml || context !== outermostContext ) ) || (
 				(checkContext = context).nodeType ?
 					matchContext( elem, context, xml ) :
 					matchAnyContext( elem, context, xml ) );
+			// Avoid hanging onto element (issue #299)
+			checkContext = null;
+			return ret;
 		} ];
 
 	for ( ; i < len; i++ ) {
@@ -4829,7 +4868,7 @@ function matcherFromGroupMatchers( elementMatchers, setMatchers ) {
 		superMatcher;
 }
 
-compile = Sizzle.compile = function( selector, group /* Internal Use Only */ ) {
+compile = Sizzle.compile = function( selector, match /* Internal Use Only */ ) {
 	var i,
 		setMatchers = [],
 		elementMatchers = [],
@@ -4837,12 +4876,12 @@ compile = Sizzle.compile = function( selector, group /* Internal Use Only */ ) {
 
 	if ( !cached ) {
 		// Generate a function of recursive functions that can be used to check each element
-		if ( !group ) {
-			group = tokenize( selector );
+		if ( !match ) {
+			match = tokenize( selector );
 		}
-		i = group.length;
+		i = match.length;
 		while ( i-- ) {
-			cached = matcherFromTokens( group[i] );
+			cached = matcherFromTokens( match[i] );
 			if ( cached[ expando ] ) {
 				setMatchers.push( cached );
 			} else {
@@ -4852,74 +4891,83 @@ compile = Sizzle.compile = function( selector, group /* Internal Use Only */ ) {
 
 		// Cache the compiled function
 		cached = compilerCache( selector, matcherFromGroupMatchers( elementMatchers, setMatchers ) );
+
+		// Save selector and tokenization
+		cached.selector = selector;
 	}
 	return cached;
 };
 
-function multipleContexts( selector, contexts, results ) {
-	var i = 0,
-		len = contexts.length;
-	for ( ; i < len; i++ ) {
-		Sizzle( selector, contexts[i], results );
-	}
-	return results;
-}
-
-function select( selector, context, results, seed ) {
+/**
+ * A low-level selection function that works with Sizzle's compiled
+ *  selector functions
+ * @param {String|Function} selector A selector or a pre-compiled
+ *  selector function built with Sizzle.compile
+ * @param {Element} context
+ * @param {Array} [results]
+ * @param {Array} [seed] A set of elements to match against
+ */
+select = Sizzle.select = function( selector, context, results, seed ) {
 	var i, tokens, token, type, find,
-		match = tokenize( selector );
+		compiled = typeof selector === "function" && selector,
+		match = !seed && tokenize( (selector = compiled.selector || selector) );
 
-	if ( !seed ) {
-		// Try to minimize operations if there is only one group
-		if ( match.length === 1 ) {
+	results = results || [];
 
-			// Take a shortcut and set the context if the root selector is an ID
-			tokens = match[0] = match[0].slice( 0 );
-			if ( tokens.length > 2 && (token = tokens[0]).type === "ID" &&
-					support.getById && context.nodeType === 9 && documentIsHTML &&
-					Expr.relative[ tokens[1].type ] ) {
+	// Try to minimize operations if there is no seed and only one group
+	if ( match.length === 1 ) {
 
-				context = ( Expr.find["ID"]( token.matches[0].replace(runescape, funescape), context ) || [] )[0];
-				if ( !context ) {
-					return results;
-				}
-				selector = selector.slice( tokens.shift().value.length );
+		// Take a shortcut and set the context if the root selector is an ID
+		tokens = match[0] = match[0].slice( 0 );
+		if ( tokens.length > 2 && (token = tokens[0]).type === "ID" &&
+				support.getById && context.nodeType === 9 && documentIsHTML &&
+				Expr.relative[ tokens[1].type ] ) {
+
+			context = ( Expr.find["ID"]( token.matches[0].replace(runescape, funescape), context ) || [] )[0];
+			if ( !context ) {
+				return results;
+
+			// Precompiled matchers will still verify ancestry, so step up a level
+			} else if ( compiled ) {
+				context = context.parentNode;
 			}
 
-			// Fetch a seed set for right-to-left matching
-			i = matchExpr["needsContext"].test( selector ) ? 0 : tokens.length;
-			while ( i-- ) {
-				token = tokens[i];
+			selector = selector.slice( tokens.shift().value.length );
+		}
 
-				// Abort if we hit a combinator
-				if ( Expr.relative[ (type = token.type) ] ) {
-					break;
-				}
-				if ( (find = Expr.find[ type ]) ) {
-					// Search, expanding context for leading sibling combinators
-					if ( (seed = find(
-						token.matches[0].replace( runescape, funescape ),
-						rsibling.test( tokens[0].type ) && testContext( context.parentNode ) || context
-					)) ) {
+		// Fetch a seed set for right-to-left matching
+		i = matchExpr["needsContext"].test( selector ) ? 0 : tokens.length;
+		while ( i-- ) {
+			token = tokens[i];
 
-						// If seed is empty or no tokens remain, we can return early
-						tokens.splice( i, 1 );
-						selector = seed.length && toSelector( tokens );
-						if ( !selector ) {
-							push.apply( results, seed );
-							return results;
-						}
+			// Abort if we hit a combinator
+			if ( Expr.relative[ (type = token.type) ] ) {
+				break;
+			}
+			if ( (find = Expr.find[ type ]) ) {
+				// Search, expanding context for leading sibling combinators
+				if ( (seed = find(
+					token.matches[0].replace( runescape, funescape ),
+					rsibling.test( tokens[0].type ) && testContext( context.parentNode ) || context
+				)) ) {
 
-						break;
+					// If seed is empty or no tokens remain, we can return early
+					tokens.splice( i, 1 );
+					selector = seed.length && toSelector( tokens );
+					if ( !selector ) {
+						push.apply( results, seed );
+						return results;
 					}
+
+					break;
 				}
 			}
 		}
 	}
 
-	// Compile and execute a filtering function
+	// Compile and execute a filtering function if one is not provided
 	// Provide `match` to avoid retokenization if we modified the selector above
-	compile( selector, match )(
+	( compiled || compile( selector, match ) )(
 		seed,
 		context,
 		!documentIsHTML,
@@ -4927,14 +4975,14 @@ function select( selector, context, results, seed ) {
 		rsibling.test( selector ) && testContext( context.parentNode ) || context
 	);
 	return results;
-}
+};
 
 // One-time assignments
 
 // Sort stability
 support.sortStable = expando.split("").sort( sortOrder ).join("") === expando;
 
-// Support: Chrome<14
+// Support: Chrome 14-35+
 // Always assume duplicates if they aren't passed to the comparison function
 support.detectDuplicates = !!hasDuplicate;
 
@@ -5820,8 +5868,9 @@ jQuery.extend({
 		readyList.resolveWith( document, [ jQuery ] );
 
 		// Trigger any bound ready events
-		if ( jQuery.fn.trigger ) {
-			jQuery( document ).trigger("ready").off("ready");
+		if ( jQuery.fn.triggerHandler ) {
+			jQuery( document ).triggerHandler( "ready" );
+			jQuery( document ).off( "ready" );
 		}
 	}
 });
@@ -5929,23 +5978,21 @@ support.ownLast = i !== "0";
 // false until the test is run
 support.inlineBlockNeedsLayout = false;
 
+// Execute ASAP in case we need to set body.style.zoom
 jQuery(function() {
-	// We need to execute this one support test ASAP because we need to know
-	// if body.style.zoom needs to be set.
+	// Minified: var a,b,c,d
+	var val, div, body, container;
 
-	var container, div,
-		body = document.getElementsByTagName("body")[0];
-
-	if ( !body ) {
+	body = document.getElementsByTagName( "body" )[ 0 ];
+	if ( !body || !body.style ) {
 		// Return for frameset docs that don't have a body
 		return;
 	}
 
 	// Setup
-	container = document.createElement( "div" );
-	container.style.cssText = "border:0;width:0;height:0;position:absolute;top:0;left:-9999px;margin-top:1px";
-
 	div = document.createElement( "div" );
+	container = document.createElement( "div" );
+	container.style.cssText = "position:absolute;border:0;width:0;height:0;top:0;left:-9999px";
 	body.appendChild( container ).appendChild( div );
 
 	if ( typeof div.style.zoom !== strundefined ) {
@@ -5953,9 +6000,10 @@ jQuery(function() {
 		// Check if natively block-level elements act like inline-block
 		// elements when setting their display to 'inline' and giving
 		// them layout
-		div.style.cssText = "border:0;margin:0;width:1px;padding:1px;display:inline;zoom:1";
+		div.style.cssText = "display:inline;margin:0;border:0;padding:1px;width:1px;zoom:1";
 
-		if ( (support.inlineBlockNeedsLayout = ( div.offsetWidth === 3 )) ) {
+		support.inlineBlockNeedsLayout = val = div.offsetWidth === 3;
+		if ( val ) {
 			// Prevent IE 6 from affecting layout for positioned elements #11048
 			// Prevent IE from shrinking the body in IE 7 mode #12869
 			// Support: IE<8
@@ -5964,9 +6012,6 @@ jQuery(function() {
 	}
 
 	body.removeChild( container );
-
-	// Null elements to avoid leaks in IE
-	container = div = null;
 });
 
 
@@ -6289,12 +6334,15 @@ jQuery.fn.extend({
 				if ( elem.nodeType === 1 && !jQuery._data( elem, "parsedAttrs" ) ) {
 					i = attrs.length;
 					while ( i-- ) {
-						name = attrs[i].name;
 
-						if ( name.indexOf("data-") === 0 ) {
-							name = jQuery.camelCase( name.slice(5) );
-
-							dataAttr( elem, name, data[ name ] );
+						// Support: IE11+
+						// The attrs elements can be null (#14894)
+						if ( attrs[ i ] ) {
+							name = attrs[ i ].name;
+							if ( name.indexOf( "data-" ) === 0 ) {
+								name = jQuery.camelCase( name.slice(5) );
+								dataAttr( elem, name, data[ name ] );
+							}
 						}
 					}
 					jQuery._data( elem, "parsedAttrs", true );
@@ -6534,13 +6582,13 @@ var rcheckableType = (/^(?:checkbox|radio)$/i);
 
 
 (function() {
-	var fragment = document.createDocumentFragment(),
-		div = document.createElement("div"),
-		input = document.createElement("input");
+	// Minified: var a,b,c
+	var input = document.createElement( "input" ),
+		div = document.createElement( "div" ),
+		fragment = document.createDocumentFragment();
 
 	// Setup
-	div.setAttribute( "className", "t" );
-	div.innerHTML = "  <link/><table></table><a href='/a'>a</a>";
+	div.innerHTML = "  <link/><table></table><a href='/a'>a</a><input type='checkbox'/>";
 
 	// IE strips leading whitespace when .innerHTML is used
 	support.leadingWhitespace = div.firstChild.nodeType === 3;
@@ -6600,9 +6648,6 @@ var rcheckableType = (/^(?:checkbox|radio)$/i);
 			support.deleteExpando = false;
 		}
 	}
-
-	// Null elements to avoid leaks in IE.
-	fragment = div = input = null;
 })();
 
 
@@ -6628,7 +6673,7 @@ var rcheckableType = (/^(?:checkbox|radio)$/i);
 
 var rformElems = /^(?:input|select|textarea)$/i,
 	rkeyEvent = /^key/,
-	rmouseEvent = /^(?:mouse|contextmenu)|click/,
+	rmouseEvent = /^(?:mouse|pointer|contextmenu)|click/,
 	rfocusMorph = /^(?:focusinfocus|focusoutblur)$/,
 	rtypenamespace = /^([^.]*)(?:\.(.+)|)$/;
 
@@ -7231,8 +7276,9 @@ jQuery.event = {
 		beforeunload: {
 			postDispatch: function( event ) {
 
-				// Even when returnValue equals to undefined Firefox will still show alert
-				if ( event.result !== undefined ) {
+				// Support: Firefox 20+
+				// Firefox doesn't alert if the returnValue field is not set.
+				if ( event.result !== undefined && event.originalEvent ) {
 					event.originalEvent.returnValue = event.result;
 				}
 			}
@@ -7298,11 +7344,9 @@ jQuery.Event = function( src, props ) {
 		// Events bubbling up the document may have been marked as prevented
 		// by a handler lower down the tree; reflect the correct value.
 		this.isDefaultPrevented = src.defaultPrevented ||
-				src.defaultPrevented === undefined && (
-				// Support: IE < 9
-				src.returnValue === false ||
-				// Support: Android < 4.0
-				src.getPreventDefault && src.getPreventDefault() ) ?
+				src.defaultPrevented === undefined &&
+				// Support: IE < 9, Android < 4.0
+				src.returnValue === false ?
 			returnTrue :
 			returnFalse;
 
@@ -7365,7 +7409,14 @@ jQuery.Event.prototype = {
 		e.cancelBubble = true;
 	},
 	stopImmediatePropagation: function() {
+		var e = this.originalEvent;
+
 		this.isImmediatePropagationStopped = returnTrue;
+
+		if ( e && e.stopImmediatePropagation ) {
+			e.stopImmediatePropagation();
+		}
+
 		this.stopPropagation();
 	}
 };
@@ -7373,7 +7424,9 @@ jQuery.Event.prototype = {
 // Create mouseenter/leave events using mouseover/out and event-time checks
 jQuery.each({
 	mouseenter: "mouseover",
-	mouseleave: "mouseout"
+	mouseleave: "mouseout",
+	pointerenter: "pointerover",
+	pointerleave: "pointerout"
 }, function( orig, fix ) {
 	jQuery.event.special[ orig ] = {
 		delegateType: fix,
@@ -8377,14 +8430,15 @@ var iframe,
  */
 // Called only from within defaultDisplay
 function actualDisplay( name, doc ) {
-	var elem = jQuery( doc.createElement( name ) ).appendTo( doc.body ),
+	var style,
+		elem = jQuery( doc.createElement( name ) ).appendTo( doc.body ),
 
 		// getDefaultComputedStyle might be reliably used only on attached element
-		display = window.getDefaultComputedStyle ?
+		display = window.getDefaultComputedStyle && ( style = window.getDefaultComputedStyle( elem[ 0 ] ) ) ?
 
 			// Use of this method is a temporary fix (more like optmization) until something better comes along,
 			// since it was removed from specification and supported only in FF
-			window.getDefaultComputedStyle( elem[ 0 ] ).display : jQuery.css( elem[ 0 ], "display" );
+			style.display : jQuery.css( elem[ 0 ], "display" );
 
 	// We don't have any data stored on the element,
 	// so use "detach" method as fast way to get rid of the element
@@ -8430,67 +8484,46 @@ function defaultDisplay( nodeName ) {
 
 
 (function() {
-	var a, shrinkWrapBlocksVal,
-		div = document.createElement( "div" ),
-		divReset =
-			"-webkit-box-sizing:content-box;-moz-box-sizing:content-box;box-sizing:content-box;" +
-			"display:block;padding:0;margin:0;border:0";
-
-	// Setup
-	div.innerHTML = "  <link/><table></table><a href='/a'>a</a><input type='checkbox'/>";
-	a = div.getElementsByTagName( "a" )[ 0 ];
-
-	a.style.cssText = "float:left;opacity:.5";
-
-	// Make sure that element opacity exists
-	// (IE uses filter instead)
-	// Use a regex to work around a WebKit issue. See #5145
-	support.opacity = /^0.5/.test( a.style.opacity );
-
-	// Verify style float existence
-	// (IE uses styleFloat instead of cssFloat)
-	support.cssFloat = !!a.style.cssFloat;
-
-	div.style.backgroundClip = "content-box";
-	div.cloneNode( true ).style.backgroundClip = "";
-	support.clearCloneStyle = div.style.backgroundClip === "content-box";
-
-	// Null elements to avoid leaks in IE.
-	a = div = null;
+	var shrinkWrapBlocksVal;
 
 	support.shrinkWrapBlocks = function() {
-		var body, container, div, containerStyles;
-
-		if ( shrinkWrapBlocksVal == null ) {
-			body = document.getElementsByTagName( "body" )[ 0 ];
-			if ( !body ) {
-				// Test fired too early or in an unsupported environment, exit.
-				return;
-			}
-
-			containerStyles = "border:0;width:0;height:0;position:absolute;top:0;left:-9999px";
-			container = document.createElement( "div" );
-			div = document.createElement( "div" );
-
-			body.appendChild( container ).appendChild( div );
-
-			// Will be changed later if needed.
-			shrinkWrapBlocksVal = false;
-
-			if ( typeof div.style.zoom !== strundefined ) {
-				// Support: IE6
-				// Check if elements with layout shrink-wrap their children
-				div.style.cssText = divReset + ";width:1px;padding:1px;zoom:1";
-				div.innerHTML = "<div></div>";
-				div.firstChild.style.width = "5px";
-				shrinkWrapBlocksVal = div.offsetWidth !== 3;
-			}
-
-			body.removeChild( container );
-
-			// Null elements to avoid leaks in IE.
-			body = container = div = null;
+		if ( shrinkWrapBlocksVal != null ) {
+			return shrinkWrapBlocksVal;
 		}
+
+		// Will be changed later if needed.
+		shrinkWrapBlocksVal = false;
+
+		// Minified: var b,c,d
+		var div, body, container;
+
+		body = document.getElementsByTagName( "body" )[ 0 ];
+		if ( !body || !body.style ) {
+			// Test fired too early or in an unsupported environment, exit.
+			return;
+		}
+
+		// Setup
+		div = document.createElement( "div" );
+		container = document.createElement( "div" );
+		container.style.cssText = "position:absolute;border:0;width:0;height:0;top:0;left:-9999px";
+		body.appendChild( container ).appendChild( div );
+
+		// Support: IE6
+		// Check if elements with layout shrink-wrap their children
+		if ( typeof div.style.zoom !== strundefined ) {
+			// Reset CSS: box-sizing; display; margin; border
+			div.style.cssText =
+				// Support: Firefox<29, Android 2.3
+				// Vendor-prefix box-sizing
+				"-webkit-box-sizing:content-box;-moz-box-sizing:content-box;" +
+				"box-sizing:content-box;display:block;margin:0;border:0;" +
+				"padding:1px;width:1px;zoom:1";
+			div.appendChild( document.createElement( "div" ) ).style.width = "5px";
+			shrinkWrapBlocksVal = div.offsetWidth !== 3;
+		}
+
+		body.removeChild( container );
 
 		return shrinkWrapBlocksVal;
 	};
@@ -8507,7 +8540,14 @@ var getStyles, curCSS,
 
 if ( window.getComputedStyle ) {
 	getStyles = function( elem ) {
-		return elem.ownerDocument.defaultView.getComputedStyle( elem, null );
+		// Support: IE<=11+, Firefox<=30+ (#15098, #14150)
+		// IE throws on elements created in popups
+		// FF meanwhile throws on frame elements through "defaultView.getComputedStyle"
+		if ( elem.ownerDocument.defaultView.opener ) {
+			return elem.ownerDocument.defaultView.getComputedStyle( elem, null );
+		}
+
+		return window.getComputedStyle( elem, null );
 	};
 
 	curCSS = function( elem, name, computed ) {
@@ -8639,92 +8679,46 @@ function addGetHookIf( conditionFn, hookFn ) {
 
 
 (function() {
-	var a, reliableHiddenOffsetsVal, boxSizingVal, boxSizingReliableVal,
-		pixelPositionVal, reliableMarginRightVal,
-		div = document.createElement( "div" ),
-		containerStyles = "border:0;width:0;height:0;position:absolute;top:0;left:-9999px",
-		divReset =
-			"-webkit-box-sizing:content-box;-moz-box-sizing:content-box;box-sizing:content-box;" +
-			"display:block;padding:0;margin:0;border:0";
+	// Minified: var b,c,d,e,f,g, h,i
+	var div, style, a, pixelPositionVal, boxSizingReliableVal,
+		reliableHiddenOffsetsVal, reliableMarginRightVal;
 
 	// Setup
+	div = document.createElement( "div" );
 	div.innerHTML = "  <link/><table></table><a href='/a'>a</a><input type='checkbox'/>";
 	a = div.getElementsByTagName( "a" )[ 0 ];
+	style = a && a.style;
 
-	a.style.cssText = "float:left;opacity:.5";
+	// Finish early in limited (non-browser) environments
+	if ( !style ) {
+		return;
+	}
 
-	// Make sure that element opacity exists
-	// (IE uses filter instead)
-	// Use a regex to work around a WebKit issue. See #5145
-	support.opacity = /^0.5/.test( a.style.opacity );
+	style.cssText = "float:left;opacity:.5";
+
+	// Support: IE<9
+	// Make sure that element opacity exists (as opposed to filter)
+	support.opacity = style.opacity === "0.5";
 
 	// Verify style float existence
 	// (IE uses styleFloat instead of cssFloat)
-	support.cssFloat = !!a.style.cssFloat;
+	support.cssFloat = !!style.cssFloat;
 
 	div.style.backgroundClip = "content-box";
 	div.cloneNode( true ).style.backgroundClip = "";
 	support.clearCloneStyle = div.style.backgroundClip === "content-box";
 
-	// Null elements to avoid leaks in IE.
-	a = div = null;
+	// Support: Firefox<29, Android 2.3
+	// Vendor-prefix box-sizing
+	support.boxSizing = style.boxSizing === "" || style.MozBoxSizing === "" ||
+		style.WebkitBoxSizing === "";
 
 	jQuery.extend(support, {
 		reliableHiddenOffsets: function() {
-			if ( reliableHiddenOffsetsVal != null ) {
-				return reliableHiddenOffsetsVal;
-			}
-
-			var container, tds, isSupported,
-				div = document.createElement( "div" ),
-				body = document.getElementsByTagName( "body" )[ 0 ];
-
-			if ( !body ) {
-				// Return for frameset docs that don't have a body
-				return;
-			}
-
-			// Setup
-			div.setAttribute( "className", "t" );
-			div.innerHTML = "  <link/><table></table><a href='/a'>a</a><input type='checkbox'/>";
-
-			container = document.createElement( "div" );
-			container.style.cssText = containerStyles;
-
-			body.appendChild( container ).appendChild( div );
-
-			// Support: IE8
-			// Check if table cells still have offsetWidth/Height when they are set
-			// to display:none and there are still other visible table cells in a
-			// table row; if so, offsetWidth/Height are not reliable for use when
-			// determining if an element has been hidden directly using
-			// display:none (it is still safe to use offsets if a parent element is
-			// hidden; don safety goggles and see bug #4512 for more information).
-			div.innerHTML = "<table><tr><td></td><td>t</td></tr></table>";
-			tds = div.getElementsByTagName( "td" );
-			tds[ 0 ].style.cssText = "padding:0;margin:0;border:0;display:none";
-			isSupported = ( tds[ 0 ].offsetHeight === 0 );
-
-			tds[ 0 ].style.display = "";
-			tds[ 1 ].style.display = "none";
-
-			// Support: IE8
-			// Check if empty table cells still have offsetWidth/Height
-			reliableHiddenOffsetsVal = isSupported && ( tds[ 0 ].offsetHeight === 0 );
-
-			body.removeChild( container );
-
-			// Null elements to avoid leaks in IE.
-			div = body = null;
-
-			return reliableHiddenOffsetsVal;
-		},
-
-		boxSizing: function() {
-			if ( boxSizingVal == null ) {
+			if ( reliableHiddenOffsetsVal == null ) {
 				computeStyleTests();
 			}
-			return boxSizingVal;
+			return reliableHiddenOffsetsVal;
 		},
 
 		boxSizingReliable: function() {
@@ -8741,84 +8735,88 @@ function addGetHookIf( conditionFn, hookFn ) {
 			return pixelPositionVal;
 		},
 
+		// Support: Android 2.3
 		reliableMarginRight: function() {
-			var body, container, div, marginDiv;
-
-			// Use window.getComputedStyle because jsdom on node.js will break without it.
-			if ( reliableMarginRightVal == null && window.getComputedStyle ) {
-				body = document.getElementsByTagName( "body" )[ 0 ];
-				if ( !body ) {
-					// Test fired too early or in an unsupported environment, exit.
-					return;
-				}
-
-				container = document.createElement( "div" );
-				div = document.createElement( "div" );
-				container.style.cssText = containerStyles;
-
-				body.appendChild( container ).appendChild( div );
-
-				// Check if div with explicit width and no margin-right incorrectly
-				// gets computed margin-right based on width of container. (#3333)
-				// Fails in WebKit before Feb 2011 nightlies
-				// WebKit Bug 13343 - getComputedStyle returns wrong value for margin-right
-				marginDiv = div.appendChild( document.createElement( "div" ) );
-				marginDiv.style.cssText = div.style.cssText = divReset;
-				marginDiv.style.marginRight = marginDiv.style.width = "0";
-				div.style.width = "1px";
-
-				reliableMarginRightVal =
-					!parseFloat( ( window.getComputedStyle( marginDiv, null ) || {} ).marginRight );
-
-				body.removeChild( container );
+			if ( reliableMarginRightVal == null ) {
+				computeStyleTests();
 			}
-
 			return reliableMarginRightVal;
 		}
 	});
 
 	function computeStyleTests() {
-		var container, div,
-			body = document.getElementsByTagName( "body" )[ 0 ];
+		// Minified: var b,c,d,j
+		var div, body, container, contents;
 
-		if ( !body ) {
+		body = document.getElementsByTagName( "body" )[ 0 ];
+		if ( !body || !body.style ) {
 			// Test fired too early or in an unsupported environment, exit.
 			return;
 		}
 
-		container = document.createElement( "div" );
+		// Setup
 		div = document.createElement( "div" );
-		container.style.cssText = containerStyles;
-
+		container = document.createElement( "div" );
+		container.style.cssText = "position:absolute;border:0;width:0;height:0;top:0;left:-9999px";
 		body.appendChild( container ).appendChild( div );
 
 		div.style.cssText =
-			"-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;" +
-				"position:absolute;display:block;padding:1px;border:1px;width:4px;" +
-				"margin-top:1%;top:1%";
+			// Support: Firefox<29, Android 2.3
+			// Vendor-prefix box-sizing
+			"-webkit-box-sizing:border-box;-moz-box-sizing:border-box;" +
+			"box-sizing:border-box;display:block;margin-top:1%;top:1%;" +
+			"border:1px;padding:1px;width:4px;position:absolute";
 
-		// Workaround failing boxSizing test due to offsetWidth returning wrong value
-		// with some non-1 values of body zoom, ticket #13543
-		jQuery.swap( body, body.style.zoom != null ? { zoom: 1 } : {}, function() {
-			boxSizingVal = div.offsetWidth === 4;
-		});
-
-		// Will be changed later if needed.
-		boxSizingReliableVal = true;
-		pixelPositionVal = false;
+		// Support: IE<9
+		// Assume reasonable values in the absence of getComputedStyle
+		pixelPositionVal = boxSizingReliableVal = false;
 		reliableMarginRightVal = true;
 
-		// Use window.getComputedStyle because jsdom on node.js will break without it.
+		// Check for getComputedStyle so that this code is not run in IE<9.
 		if ( window.getComputedStyle ) {
 			pixelPositionVal = ( window.getComputedStyle( div, null ) || {} ).top !== "1%";
 			boxSizingReliableVal =
 				( window.getComputedStyle( div, null ) || { width: "4px" } ).width === "4px";
+
+			// Support: Android 2.3
+			// Div with explicit width and no margin-right incorrectly
+			// gets computed margin-right based on width of container (#3333)
+			// WebKit Bug 13343 - getComputedStyle returns wrong value for margin-right
+			contents = div.appendChild( document.createElement( "div" ) );
+
+			// Reset CSS: box-sizing; display; margin; border; padding
+			contents.style.cssText = div.style.cssText =
+				// Support: Firefox<29, Android 2.3
+				// Vendor-prefix box-sizing
+				"-webkit-box-sizing:content-box;-moz-box-sizing:content-box;" +
+				"box-sizing:content-box;display:block;margin:0;border:0;padding:0";
+			contents.style.marginRight = contents.style.width = "0";
+			div.style.width = "1px";
+
+			reliableMarginRightVal =
+				!parseFloat( ( window.getComputedStyle( contents, null ) || {} ).marginRight );
+
+			div.removeChild( contents );
+		}
+
+		// Support: IE8
+		// Check if table cells still have offsetWidth/Height when they are set
+		// to display:none and there are still other visible table cells in a
+		// table row; if so, offsetWidth/Height are not reliable for use when
+		// determining if an element has been hidden directly using
+		// display:none (it is still safe to use offsets if a parent element is
+		// hidden; don safety goggles and see bug #4512 for more information).
+		div.innerHTML = "<table><tr><td></td><td>t</td></tr></table>";
+		contents = div.getElementsByTagName( "td" );
+		contents[ 0 ].style.cssText = "margin:0;border:0;padding:0;display:none";
+		reliableHiddenOffsetsVal = contents[ 0 ].offsetHeight === 0;
+		if ( reliableHiddenOffsetsVal ) {
+			contents[ 0 ].style.display = "";
+			contents[ 1 ].style.display = "none";
+			reliableHiddenOffsetsVal = contents[ 0 ].offsetHeight === 0;
 		}
 
 		body.removeChild( container );
-
-		// Null elements to avoid leaks in IE.
-		div = body = null;
 	}
 
 })();
@@ -8858,8 +8856,8 @@ var
 
 	cssShow = { position: "absolute", visibility: "hidden", display: "block" },
 	cssNormalTransform = {
-		letterSpacing: 0,
-		fontWeight: 400
+		letterSpacing: "0",
+		fontWeight: "400"
 	},
 
 	cssPrefixes = [ "Webkit", "O", "Moz", "ms" ];
@@ -8916,13 +8914,10 @@ function showHide( elements, show ) {
 				values[ index ] = jQuery._data( elem, "olddisplay", defaultDisplay(elem.nodeName) );
 			}
 		} else {
+			hidden = isHidden( elem );
 
-			if ( !values[ index ] ) {
-				hidden = isHidden( elem );
-
-				if ( display && display !== "none" || !hidden ) {
-					jQuery._data( elem, "olddisplay", hidden ? display : jQuery.css( elem, "display" ) );
-				}
+			if ( display && display !== "none" || !hidden ) {
+				jQuery._data( elem, "olddisplay", hidden ? display : jQuery.css( elem, "display" ) );
 			}
 		}
 	}
@@ -8995,7 +8990,7 @@ function getWidthOrHeight( elem, name, extra ) {
 	var valueIsBorderBox = true,
 		val = name === "width" ? elem.offsetWidth : elem.offsetHeight,
 		styles = getStyles( elem ),
-		isBorderBox = support.boxSizing() && jQuery.css( elem, "boxSizing", false, styles ) === "border-box";
+		isBorderBox = support.boxSizing && jQuery.css( elem, "boxSizing", false, styles ) === "border-box";
 
 	// some non-html elements return undefined for offsetWidth, so check for null/undefined
 	// svg - https://bugzilla.mozilla.org/show_bug.cgi?id=649285
@@ -9051,6 +9046,8 @@ jQuery.extend({
 	cssNumber: {
 		"columnCount": true,
 		"fillOpacity": true,
+		"flexGrow": true,
+		"flexShrink": true,
 		"fontWeight": true,
 		"lineHeight": true,
 		"opacity": true,
@@ -9119,9 +9116,6 @@ jQuery.extend({
 				// Support: IE
 				// Swallow errors from 'invalid' CSS values (#5509)
 				try {
-					// Support: Chrome, Safari
-					// Setting style to blank string required to delete "style: x !important;"
-					style[ name ] = "";
 					style[ name ] = value;
 				} catch(e) {}
 			}
@@ -9178,7 +9172,7 @@ jQuery.each([ "height", "width" ], function( i, name ) {
 			if ( computed ) {
 				// certain elements can have dimension info if we invisibly show them
 				// however, it must have a current display style that would benefit from this
-				return elem.offsetWidth === 0 && rdisplayswap.test( jQuery.css( elem, "display" ) ) ?
+				return rdisplayswap.test( jQuery.css( elem, "display" ) ) && elem.offsetWidth === 0 ?
 					jQuery.swap( elem, cssShow, function() {
 						return getWidthOrHeight( elem, name, extra );
 					}) :
@@ -9193,7 +9187,7 @@ jQuery.each([ "height", "width" ], function( i, name ) {
 					elem,
 					name,
 					extra,
-					support.boxSizing() && jQuery.css( elem, "boxSizing", false, styles ) === "border-box",
+					support.boxSizing && jQuery.css( elem, "boxSizing", false, styles ) === "border-box",
 					styles
 				) : 0
 			);
@@ -9542,7 +9536,7 @@ function createTween( value, prop, animation ) {
 
 function defaultPrefilter( elem, props, opts ) {
 	/* jshint validthis: true */
-	var prop, value, toggle, tween, hooks, oldfire, display, dDisplay,
+	var prop, value, toggle, tween, hooks, oldfire, display, checkDisplay,
 		anim = this,
 		orig = {},
 		style = elem.style,
@@ -9586,16 +9580,16 @@ function defaultPrefilter( elem, props, opts ) {
 		// Set display property to inline-block for height/width
 		// animations on inline elements that are having width/height animated
 		display = jQuery.css( elem, "display" );
-		dDisplay = defaultDisplay( elem.nodeName );
-		if ( display === "none" ) {
-			display = dDisplay;
-		}
-		if ( display === "inline" &&
-				jQuery.css( elem, "float" ) === "none" ) {
+
+		// Test default display if display is currently "none"
+		checkDisplay = display === "none" ?
+			jQuery._data( elem, "olddisplay" ) || defaultDisplay( elem.nodeName ) : display;
+
+		if ( checkDisplay === "inline" && jQuery.css( elem, "float" ) === "none" ) {
 
 			// inline-level elements accept inline-block;
 			// block-level elements need to be inline with layout
-			if ( !support.inlineBlockNeedsLayout || dDisplay === "inline" ) {
+			if ( !support.inlineBlockNeedsLayout || defaultDisplay( elem.nodeName ) === "inline" ) {
 				style.display = "inline-block";
 			} else {
 				style.zoom = 1;
@@ -9630,6 +9624,10 @@ function defaultPrefilter( elem, props, opts ) {
 				}
 			}
 			orig[ prop ] = dataShow && dataShow[ prop ] || jQuery.style( elem, prop );
+
+		// Any non-fx value stops us from restoring the original display value
+		} else {
+			display = undefined;
 		}
 	}
 
@@ -9671,6 +9669,10 @@ function defaultPrefilter( elem, props, opts ) {
 				}
 			}
 		}
+
+	// If this is a noop like .hide().hide(), restore an overwritten display value
+	} else if ( (display === "none" ? defaultDisplay( elem.nodeName ) : display) === "inline" ) {
+		style.display = display;
 	}
 }
 
@@ -10087,10 +10089,11 @@ jQuery.fn.delay = function( time, type ) {
 
 
 (function() {
-	var a, input, select, opt,
-		div = document.createElement("div" );
+	// Minified: var a,b,c,d,e
+	var input, div, select, a, opt;
 
 	// Setup
+	div = document.createElement( "div" );
 	div.setAttribute( "className", "t" );
 	div.innerHTML = "  <link/><table></table><a href='/a'>a</a><input type='checkbox'/>";
 	a = div.getElementsByTagName("a")[ 0 ];
@@ -10138,9 +10141,6 @@ jQuery.fn.delay = function( time, type ) {
 	input.value = "t";
 	input.setAttribute( "type", "radio" );
 	support.radioValue = input.value === "t";
-
-	// Null elements to avoid leaks in IE.
-	a = input = select = opt = div = null;
 })();
 
 
@@ -10214,7 +10214,9 @@ jQuery.extend({
 				var val = jQuery.find.attr( elem, "value" );
 				return val != null ?
 					val :
-					jQuery.text( elem );
+					// Support: IE10-11+
+					// option.text throws exceptions (#14686, #14858)
+					jQuery.trim( jQuery.text( elem ) );
 			}
 		},
 		select: {
@@ -11502,7 +11504,8 @@ jQuery.extend({
 		}
 
 		// We can fire global events as of now if asked to
-		fireGlobals = s.global;
+		// Don't fire events if jQuery.event is undefined in an AMD-usage scenario (#15118)
+		fireGlobals = jQuery.event && s.global;
 
 		// Watch for a new set of requests
 		if ( fireGlobals && jQuery.active++ === 0 ) {
@@ -11761,13 +11764,6 @@ jQuery.each( [ "get", "post" ], function( i, method ) {
 	};
 });
 
-// Attach a bunch of functions for handling common AJAX events
-jQuery.each( [ "ajaxStart", "ajaxStop", "ajaxComplete", "ajaxError", "ajaxSuccess", "ajaxSend" ], function( i, type ) {
-	jQuery.fn[ type ] = function( fn ) {
-		return this.on( type, fn );
-	};
-});
-
 
 jQuery._evalUrl = function( url ) {
 	return jQuery.ajax({
@@ -11993,8 +11989,9 @@ var xhrId = 0,
 
 // Support: IE<10
 // Open requests must be manually aborted on unload (#5280)
-if ( window.ActiveXObject ) {
-	jQuery( window ).on( "unload", function() {
+// See https://support.microsoft.com/kb/2856746 for more info
+if ( window.attachEvent ) {
+	window.attachEvent( "onunload", function() {
 		for ( var key in xhrCallbacks ) {
 			xhrCallbacks[ key ]( undefined, true );
 		}
@@ -12378,7 +12375,7 @@ jQuery.fn.load = function( url, params, callback ) {
 		off = url.indexOf(" ");
 
 	if ( off >= 0 ) {
-		selector = url.slice( off, url.length );
+		selector = jQuery.trim( url.slice( off, url.length ) );
 		url = url.slice( 0, off );
 	}
 
@@ -12424,6 +12421,16 @@ jQuery.fn.load = function( url, params, callback ) {
 
 	return this;
 };
+
+
+
+
+// Attach a bunch of functions for handling common AJAX events
+jQuery.each( [ "ajaxStart", "ajaxStop", "ajaxComplete", "ajaxError", "ajaxSuccess", "ajaxSend" ], function( i, type ) {
+	jQuery.fn[ type ] = function( fn ) {
+		return this.on( type, fn );
+	};
+});
 
 
 
@@ -12691,6 +12698,12 @@ jQuery.fn.andSelf = jQuery.fn.addBack;
 // derived from file names, and jQuery is normally delivered in a lowercase
 // file name. Do this after creating the global so that if an AMD module wants
 // to call noConflict to hide this version of jQuery, it will work.
+
+// Note that for maximum portability, libraries that are not jQuery should
+// declare themselves as anonymous modules, and avoid setting a global if an
+// AMD loader is present. jQuery is a special case. For more information, see
+// https://github.com/jrburke/requirejs/wiki/Updating-existing-libraries#wiki-anon
+
 if ( typeof define === "function" && define.amd ) {
 	define( "jquery", [], function() {
 		return jQuery;
@@ -12775,6 +12788,10 @@ var Tracker, Deps;
 
                                                                                                                   //
 
+/**
+ * @namespace Tracker
+ * @summary The namespace for Tracker-related methods.
+ */
 Tracker = {};
 
 // http://docs.meteor.com/#tracker_active
@@ -12782,6 +12799,7 @@ Tracker = {};
 /**
  * @summary True if there is a current computation, meaning that dependencies on reactive data sources will be tracked and potentially cause the current computation to be rerun.
  * @locus Client
+ * @type {Boolean}
  */
 Tracker.active = false;
 
@@ -12790,6 +12808,7 @@ Tracker.active = false;
 /**
  * @summary The current computation, or `null` if there isn't one.  The current computation is the [`Tracker.Computation`](#tracker_computation) object created by the innermost active call to `Tracker.autorun`, and it's the computation that gains dependencies when reactive data sources are accessed.
  * @locus Client
+ * @type {Tracker.Computation}
  */
 Tracker.currentComputation = null;
 
@@ -12919,6 +12938,7 @@ Tracker.Computation = function (f, parent) {
    * @memberOf Tracker.Computation
    * @instance
    * @name  invalidated
+   * @type {Boolean}
    */
   self.invalidated = false;
 
@@ -12930,6 +12950,7 @@ Tracker.Computation = function (f, parent) {
    * @memberOf Tracker.Computation
    * @instance
    * @name  firstRun
+   * @type {Boolean}
    */
   self.firstRun = true;
 
@@ -13028,7 +13049,7 @@ Tracker.Computation.prototype._compute = function () {
     withNoYieldsAllowed(self._func)(self);
   } finally {
     setCurrentComputation(previous);
-    inCompute = false;
+    inCompute = previousInCompute;
   }
 };
 
@@ -13086,6 +13107,7 @@ If there is no current computation and `depend()` is called with no arguments, i
 Returns true if the computation is a new dependent of `dependency` rather than an existing one.
  * @locus Client
  * @param {Tracker.Computation} [fromComputation] An optional computation declared to depend on `dependency` instead of the current computation.
+ * @returns {Boolean}
  */
 Tracker.Dependency.prototype.depend = function (computation) {
   if (! computation) {
@@ -13123,6 +13145,7 @@ Tracker.Dependency.prototype.changed = function () {
 /**
  * @summary True if this Dependency has one or more dependent Computations, which would be invalidated if this Dependency were to change.
  * @locus Client
+ * @returns {Boolean}
  */
 Tracker.Dependency.prototype.hasDependents = function () {
   var self = this;
@@ -13207,6 +13230,7 @@ Tracker.flush = function (_opts) {
  * @summary Run a function now and rerun it later whenever its dependencies change. Returns a Computation object that can be used to stop or observe the rerunning.
  * @locus Client
  * @param {Function} runFunc The function to run. It receives one argument: the Computation object that will be returned.
+ * @returns {Tracker.Computation}
  */
 Tracker.autorun = function (f) {
   if (typeof f !== 'function')
@@ -13351,7 +13375,7 @@ var HTML, IDENTITY, SLICE;
 
 (function () {
 
-                                                                                               //
+                                                                                      //
 HTML = {};
 
 IDENTITY = function (x) { return x; };
@@ -13367,7 +13391,7 @@ SLICE = Array.prototype.slice;
 
 (function () {
 
-                                                                                               //
+                                                                                      //
 ////////////////////////////// VISITORS
 
 // _assign is like _.extend or the upcoming Object.assign.
@@ -13710,99 +13734,7 @@ HTML.ToHTMLVisitor.def({
 
 (function () {
 
-                                                                                               //
-///!README
-
-/**
- * # HTMLjs
- *
- * HTMLjs is a small library for expressing HTML trees with a concise
- * syntax.  It is used to render content in Blaze and to represent
- * templates during compilation.
- *
-```
-var UL = HTML.UL, LI = HTML.LI, B = HTML.B;
-
-HTML.toHTML(
-  UL({id: 'mylist'},
-     LI({'class': 'item'}, "Hello ", B("world"), "!"),
-     LI({'class': 'item'}, "Goodbye, world")))
-```
-
-```
-<ul id="mylist">
-  <li class="item">Hello <b>world</b>!</li>
-  <li class="item">Goodbye, world</li>
-</ul>
-```
- *
- * The functions `UL`, `LI`, and `B` are constructors which
- * return instances of `HTML.Tag`.  These tag objects can
- * then be converted to an HTML string or directly into DOM nodes.
- *
- * The flexible structure of HTMLjs allows different kinds of Blaze
- * directives to be embedded in the tree.  HTMLjs does not know about
- * these directives, which are considered "foreign objects."
- *
- * # Built-in Types
- *
- * The following types are built into HTMLjs.  Built-in methods like
- * `HTML.toHTML` require a tree consisting only of these types.
- *
- * * __`null`, `undefined`__ - Render to nothing.
- *
- * * __boolean, number__ - Render to the string form of the boolean or number.
- *
- * * __string__ - Renders to a text node (or part of an attribute value).  All characters are safe, and no HTML injection is possible.  The string `"<a>"` renders `&lt;a>` in HTML, and `document.createTextNode("<a>")` in DOM.
- *
- * * __Array__ - Renders to its elements in order.  An array may be empty.  Arrays are detected using `HTML.isArray(...)`.
- *
- * * __`HTML.Tag`__ - Renders to an HTML element (including start tag, contents, and end tag).
- *
- * * __`HTML.CharRef({html: ..., str: ...})`__ - Renders to a character reference (such as `&nbsp`) when generating HTML.
- *
- * * __`HTML.Comment(text)`__ - Renders to an HTML comment.
- *
- * * __`HTML.Raw(html)`__ - Renders to a string of HTML to include verbatim.
- *
- * The `new` keyword is not required before constructors of HTML object types.
- *
- * All objects and arrays should be considered immutable.  Instance properties
- * are public, but they should only be read, not written.  Arrays should not
- * be spliced in place.  This convention allows for clean patterns of
- * processing and transforming HTMLjs trees.
- */
-
-/**
- * ## HTML.Tag
- *
- * An `HTML.Tag` is created using a tag-specific constructor, like
- * `HTML.P` for a `<p>` tag or `HTML.INPUT` for an `<input>` tag.  The
- * resulting object is `instanceof HTML.Tag`.  (The `HTML.Tag`
- * constructor should not be called directly.)
- *
- * Tag constructors take an optional attributes dictionary followed
- * by zero or more children:
- *
- * ```
- * HTML.HR()
- *
- * HTML.DIV(HTML.P("First paragraph"),
- *          HTML.P("Second paragraph"))
- *
- * HTML.INPUT({type: "text"})
- *
- * HTML.SPAN({'class': "foo"}, "Some text")
- * ```
- *
- * ### Instance properties
- *
- * Tags have the following properties:
- *
- * * `tagName` - The tag name in lowercase (or camelCase)
- * * `children` - An array of children (always present)
- * * `attrs` - An attributes dictionary, `null`, or an array (see below)
- */
+                                                                                      //
 
 
 HTML.Tag = function () {};
@@ -13855,27 +13787,6 @@ var makeTagConstructor = function (tagName) {
   return HTMLTag;
 };
 
-/**
- * ### Special forms of attributes
- *
- * The attributes of a Tag may be an array of dictionaries.  In order
- * for a tag constructor to recognize an array as the attributes argument,
- * it must be written as `HTML.Attrs(attrs1, attrs2, ...)`, as in this
- * example:
- *
- * ```
- * var extraAttrs = {'class': "container"};
- *
- * var div = HTML.DIV(HTML.Attrs({id: "main"}, extraAttrs),
- *                    "This is the content.");
- *
- * div.attrs // => [{id: "main"}, {'class': "container"}]
- * ```
- *
- * `HTML.Attrs` may also be used to pass a foreign object in place of
- * an attributes dictionary of a tag.
- *
- */
 // Not an HTMLjs node, but a wrapper to pass multiple attrs dictionaries
 // to a tag (for the purpose of implementing dynamic attributes).
 var Attrs = HTML.Attrs = function (/*attrs dictionaries*/) {
@@ -13889,75 +13800,8 @@ var Attrs = HTML.Attrs = function (/*attrs dictionaries*/) {
   return instance;
 };
 
-/**
- * ### Normalized Case for Tag Names
- *
- * The `tagName` field is always in "normalized case," which is the
- * official case for that particular element name (usually lowercase).
- * For example, `HTML.DIV().tagName` is `"div"`.  For some elements
- * used in inline SVG graphics, the correct case is "camelCase."  For
- * example, there is an element named `clipPath`.
- *
- * Web browsers have a confusing policy about case.  They perform case
- * normalization when parsing HTML, but not when creating SVG elements
- * at runtime; the correct case is required.
- *
- * Therefore, in order to avoid ever having to normalize case at
- * runtime, the policy of HTMLjs is to put the burden on the caller
- * of functions like `HTML.ensureTag` -- for example, a template
- * engine -- of supplying correct normalized case.
- *
- * Briefly put, normlized case is usually lowercase, except for certain
- * elements where it is camelCase.
- */
-
 ////////////////////////////// KNOWN ELEMENTS
 
-/**
- * ### Known Elements
- *
- * HTMLjs comes preloaded with constructors for all "known" HTML and
- * SVG elements.  You can use `HTML.P`, `HTML.DIV`, and so on out of
- * the box.  If you want to create a tag like `<foo>` for some reason,
- * you have to tell HTMLjs to create the `HTML.FOO` constructor for you
- * using `HTML.ensureTag` or `HTML.getTag`.
- *
- * HTMLjs's lists of known elements are public because they are useful to
- * other packages that provide additional functions not found here, like
- * functions for normalizing case.
- *
- */
-
-/**
- * ## Foreign objects
- *
- * Arbitrary objects are allowed in HTMLjs trees, which is useful for
- * adapting HTMLjs to a wide variety of uses.  Such objects are called
- * foreign objects.
- *
- * The one restriction on foreign objects is that they must be
- * instances of a class -- so-called "constructed objects" (see
- * `HTML.isConstructedObject`) -- so that they can be distinguished
- * from the vanilla JS objects that represent attributes dictionaries
- * when constructing Tags.
- *
- * Functions are also considered foreign objects.
- */
-
-/**
- * ## HTML.getTag(tagName)
- *
- * * `tagName` - A string in normalized case
- *
- * Creates a tag constructor for `tagName`, assigns it to the `HTML`
- * namespace object, and returns it.
- *
- * For example, `HTML.getTag("p")` returns `HTML.P`.  `HTML.getTag("foo")`
- * will create and return `HTML.FOO`.
- *
- * It's very important that `tagName` be in normalized case, or else
- * an incorrect tag constructor will be registered and used henceforth.
- */
 HTML.getTag = function (tagName) {
   var symbolName = HTML.getSymbolName(tagName);
   if (symbolName === tagName) // all-caps tagName
@@ -13969,81 +13813,26 @@ HTML.getTag = function (tagName) {
   return HTML[symbolName];
 };
 
-/**
- * ## HTML.ensureTag(tagName)
- *
- * * `tagName` - A string in normalized case
- *
- * Ensures that a tag constructor (like `HTML.FOO`) exists for a tag
- * name (like `"foo"`), creating it if necessary.  Like `HTML.getTag`
- * but does not return the tag constructor.
- */
 HTML.ensureTag = function (tagName) {
   HTML.getTag(tagName); // don't return it
 };
 
-/**
- * ## HTML.isTagEnsured(tagName)
- *
- * * `tagName` - A string in normalized case
- *
- * Returns whether a particular tag is guaranteed to be available on
- * the `HTML` object (under the name returned by `HTML.getSymbolName`).
- *
- * Useful for code generators.
- */
 HTML.isTagEnsured = function (tagName) {
   return HTML.isKnownElement(tagName);
 };
 
-/**
- * ## HTML.getSymbolName(tagName)
- *
- * * `tagName` - A string in normalized case
- *
- * Returns the name of the all-caps constructor (like `"FOO"`) for a
- * tag name in normalized case (like `"foo"`).
- *
- * In addition to converting `tagName` to all-caps, hyphens (`-`) in
- * tag names are converted to underscores (`_`).
- *
- * Useful for code generators.
- */
 HTML.getSymbolName = function (tagName) {
   // "foo-bar" -> "FOO_BAR"
   return tagName.toUpperCase().replace(/-/g, '_');
 };
 
-
-/**
- * ## HTML.knownElementNames
- *
- * An array of all known HTML5 and SVG element names in normalized case.
- */
 HTML.knownElementNames = 'a abbr acronym address applet area article aside audio b base basefont bdi bdo big blockquote body br button canvas caption center cite code col colgroup command data datagrid datalist dd del details dfn dir div dl dt em embed eventsource fieldset figcaption figure font footer form frame frameset h1 h2 h3 h4 h5 h6 head header hgroup hr html i iframe img input ins isindex kbd keygen label legend li link main map mark menu meta meter nav noframes noscript object ol optgroup option output p param pre progress q rp rt ruby s samp script section select small source span strike strong style sub summary sup table tbody td textarea tfoot th thead time title tr track tt u ul var video wbr'.split(' ');
 // (we add the SVG ones below)
 
-/**
- * ## HTML.knownSVGElementNames
- *
- * An array of all known SVG element names in normalized case.
- *
- * The `"a"` element is not included because it is primarily a non-SVG
- * element.
- */
 HTML.knownSVGElementNames = 'altGlyph altGlyphDef altGlyphItem animate animateColor animateMotion animateTransform circle clipPath color-profile cursor defs desc ellipse feBlend feColorMatrix feComponentTransfer feComposite feConvolveMatrix feDiffuseLighting feDisplacementMap feDistantLight feFlood feFuncA feFuncB feFuncG feFuncR feGaussianBlur feImage feMerge feMergeNode feMorphology feOffset fePointLight feSpecularLighting feSpotLight feTile feTurbulence filter font font-face font-face-format font-face-name font-face-src font-face-uri foreignObject g glyph glyphRef hkern image line linearGradient marker mask metadata missing-glyph path pattern polygon polyline radialGradient rect script set stop style svg switch symbol text textPath title tref tspan use view vkern'.split(' ');
 // Append SVG element names to list of known element names
 HTML.knownElementNames = HTML.knownElementNames.concat(HTML.knownSVGElementNames);
 
-/**
- * ## HTML.voidElementNames
- *
- * An array of all "void" element names in normalized case.  Void
- * elements are elements with a start tag and no end tag, such as BR,
- * HR, IMG, and INPUT.
- *
- * The HTML spec defines a closed class of void elements.
- */
 HTML.voidElementNames = 'area base br col command embed hr img input keygen link meta param source track wbr'.split(' ');
 
 // Speed up search through lists of known elements by creating internal "sets"
@@ -14059,35 +13848,14 @@ var voidElementSet = makeSet(HTML.voidElementNames);
 var knownElementSet = makeSet(HTML.knownElementNames);
 var knownSVGElementSet = makeSet(HTML.knownSVGElementNames);
 
-/**
- * ## HTML.isKnownElement(tagName)
- *
- * * `tagName` - A string in normalized case
- *
- * Returns whether `tagName` is a known HTML5 or SVG element.
- */
 HTML.isKnownElement = function (tagName) {
   return knownElementSet[tagName] === YES;
 };
 
-/**
- * ## HTML.isKnownSVGElement(tagName)
- *
- * * `tagName` - A string in normalized case
- *
- * Returns whether `tagName` is the name of a known SVG element.
- */
 HTML.isKnownSVGElement = function (tagName) {
   return knownSVGElementSet[tagName] === YES;
 };
 
-/**
- * ## HTML.isVoidElement(tagName)
- *
- * * `tagName` - A string in normalized case
- *
- * Returns whether `tagName` is the name of a void element.
- */
 HTML.isVoidElement = function (tagName) {
   return voidElementSet[tagName] === YES;
 };
@@ -14098,31 +13866,6 @@ for (var i = 0; i < HTML.knownElementNames.length; i++)
   HTML.ensureTag(HTML.knownElementNames[i]);
 
 
-/**
- * ## HTML.CharRef({html: ..., str: ...})
- *
- * Represents a character reference like `&nbsp;`.
- *
- * A CharRef is not required for escaping special characters like `<`,
- * which are automatically escaped by HTMLjs.  For example,
- * `HTML.toHTML("<")` is `"&lt;"`.  Also, now that browsers speak
- * Unicode, non-ASCII characters typically do not need to be expressed
- * as character references either.  The purpose of `CharRef` is offer
- * control over the generated HTML, allowing template engines to
- * preserve any character references that they come across.
- *
- * Constructing a CharRef requires two strings, the uninterpreted
- * "HTML" form and the interpreted "string" form.  Both are required
- * to be present, and it is up to the caller to make sure the
- * information is accurate.
- *
- * Examples of valid CharRefs:
- *
- * * `HTML.CharRef({html: '&amp;', str: '&'})`
- * * `HTML.CharRef({html: '&nbsp;', str: '\u00A0'})
- *
- * Instance properties: `.html`, `.str`
- */
 var CharRef = HTML.CharRef = function (attrs) {
   if (! (this instanceof CharRef))
     // called without `new`
@@ -14137,20 +13880,6 @@ var CharRef = HTML.CharRef = function (attrs) {
 };
 CharRef.prototype.htmljsType = CharRef.htmljsType = ['CharRef'];
 
-/**
- * ## HTML.Comment(value)
- *
- * * `value` - String
- *
- * Represents an HTML Comment.  For example, `HTML.Comment("foo")` represents
- * the comment `<!--foo-->`.
- *
- * The value string should not contain two consecutive hyphens (`--`) or start
- * or end with a hyphen.  If it does, the offending hyphens will be stripped
- * before generating HTML.
- *
- * Instance properties: `value`
- */
 var Comment = HTML.Comment = function (value) {
   if (! (this instanceof Comment))
     // called without `new`
@@ -14165,24 +13894,6 @@ var Comment = HTML.Comment = function (value) {
 };
 Comment.prototype.htmljsType = Comment.htmljsType = ['Comment'];
 
-/**
- * ## HTML.Raw(value)
- *
- * * `value` - String
- *
- * Represents HTML code to be inserted verbatim.  `value` must consist
- * of a valid, complete fragment of HTML, with all tags closed and
- * all required end tags present.
- *
- * No security checks are performed, and no special characters are
- * escaped.  `Raw` should not be used if there are other ways of
- * accomplishing the same result.  HTML supplied by an application
- * user should not be rendered unless the user is trusted, and even
- * then, there could be strange results if required end tags are
- * missing.
- *
- * Instance properties: `value`
- */
 var Raw = HTML.Raw = function (value) {
   if (! (this instanceof Raw))
     // called without `new`
@@ -14196,17 +13907,6 @@ var Raw = HTML.Raw = function (value) {
 Raw.prototype.htmljsType = Raw.htmljsType = ['Raw'];
 
 
-/**
- * ## HTML.isArray(x)
- *
- * Returns whether `x` is considered an array for the purposes of
- * HTMLjs.  An array is an object created using `[...]` or
- * `new Array`.
- *
- * This function is provided because there are several common ways to
- * determine whether an object should be treated as an array in
- * JavaScript.
- */
 HTML.isArray = function (x) {
   // could change this to use the more convoluted Object.prototype.toString
   // approach that works when objects are passed between frames, but does
@@ -14214,43 +13914,12 @@ HTML.isArray = function (x) {
   return (x instanceof Array);
 };
 
-/**
- * ## HTML.isConstructedObject(x)
- *
- * Returns whether `x` is a "constructed object," which is (loosely
- * speaking) an object that was created with `new Foo` (for some `Foo`)
- * rather than with `{...}` (a vanilla object).  Vanilla objects are used
- * as attribute dictionaries when constructing tags, while constructed
- * objects are used as children.
- *
- * For example, in `HTML.DIV({id:"foo"})`, `{id:"foo"}` is a vanilla
- * object.  In `HTML.DIV(HTML.SPAN("text"))`, the `HTML.SPAN` is a
- * constructed object.
- *
- * A simple constructed object can be created as follows:
- *
- * ```
- * var Foo = function () {};
- * var x = new Foo; // x is a constructed object
- * ```
- *
- * In particular, the test is that `x` is an object and `x.constructor`
- * is set, but on a prototype of the object, not the object itself.
- * The above example works because JavaScript sets
- * `Foo.prototype.constructor = Foo` when you create a function `Foo`.
- */
 HTML.isConstructedObject = function (x) {
   return (x && (typeof x === 'object') &&
           (x.constructor !== Object) &&
           (! Object.prototype.hasOwnProperty.call(x, 'constructor')));
 };
 
-/**
- * ## HTML.isNully(content)
- *
- * Returns true if `content` is `null`, `undefined`, an empty array,
- * or an array of only "nully" elements.
- */
 HTML.isNully = function (node) {
   if (node == null)
     // null or undefined
@@ -14267,47 +13936,10 @@ HTML.isNully = function (node) {
   return false;
 };
 
-/**
- * ## HTML.isValidAttributeName(name)
- *
- * Returns whether `name` is a valid name for an attribute of an HTML tag
- * or element.  `name` must:
- *
- * * Start with `:`, `_`, `A-Z` or `a-z`
- * * Consist only of those characters plus `-`, `.`, and `0-9`.
- *
- * Discussion: The HTML spec and the DOM API (`setAttribute`) have different
- * definitions of what characters are legal in an attribute.  The HTML
- * parser is extremely permissive (allowing, for example, `<a %=%>`), while
- * `setAttribute` seems to use something like the XML grammar for names (and
- * throws an error if a name is invalid, making that attribute unsettable).
- * If we knew exactly what grammar browsers used for `setAttribute`, we could
- * include various Unicode ranges in what's legal.  For now, we allow ASCII chars
- * that are known to be valid XML, valid HTML, and settable via `setAttribute`.
- *
- * See <http://www.w3.org/TR/REC-xml/#NT-Name> and
- * <http://dev.w3.org/html5/markup/syntax.html#syntax-attributes>.
- */
 HTML.isValidAttributeName = function (name) {
   return /^[:_A-Za-z][:_A-Za-z0-9.\-]*/.test(name);
 };
 
-/**
- * ## HTML.flattenAttributes(attrs)
- *
- * If `attrs` is an array, the attribute dictionaries in the array are
- * combined into a single attributes dictionary, which is returned.
- * Any "nully" attribute values (see `HTML.isNully`) are ignored in
- * the process.  If `attrs` is a single attribute dictionary, a copy
- * is returned with any nully attributes removed.  If `attrs` is
- * equal to null or an empty array, `null` is returned.
- *
- * Attribute dictionaries are combined by assigning the name/value
- * pairs in array order, with later values overwriting previous
- * values.
- *
- * `attrs` must not contain any foreign objects.
- */
 // If `attrs` is an array of attributes dictionaries, combines them
 // into one.  Removes attributes that are "nully."
 HTML.flattenAttributes = function (attrs) {
@@ -14340,23 +13972,6 @@ HTML.flattenAttributes = function (attrs) {
 
 ////////////////////////////// TOHTML
 
-/**
- * ## HTML.toHTML(content)
- *
- * * `content` - any HTMLjs content
- *
- * Returns a string of HTML generated from `content`.
- *
- * For example:
- *
- * ```
- * HTML.toHTML(HTML.HR()) // => "<hr>"
- * ```
- *
- * Foreign objects are not allowed in `content`.  To generate HTML
- * containing foreign objects, create a subclass of
- * `HTML.ToHTMLVisitor` and override `visitObject`.
- */
 HTML.toHTML = function (content) {
   return (new HTML.ToHTMLVisitor).visit(content);
 };
@@ -14368,34 +13983,6 @@ HTML.TEXTMODE = {
   ATTRIBUTE: 3
 };
 
-/**
- * ## HTML.toText(content, textMode)
- *
- * * `content` - any HTMLjs content
- * * `textMode` - the type of text to generate; one of
- *   `HTML.TEXTMODE.STRING`, `HTML.TEXTMODE.RCDATA`, or
- *   `HTML.TEXTMODE.ATTRIBUTE`
- *
- * Generating HTML or DOM from HTMLjs content requires generating text
- * for attribute values and for the contents of TEXTAREA elements,
- * among others.  The input content may contain strings, arrays,
- * booleans, numbers, nulls, and CharRefs.  Behavior on other types
- * is undefined.
- *
- * The required `textMode` argument specifies the type of text to
- * generate:
- *
- * * `HTML.TEXTMODE.STRING` - a string with no special
- *   escaping or encoding performed, suitable for passing to
- *   `setAttribute` or `document.createTextNode`.
- * * `HTML.TEXTMODE.RCDATA` - a string with `<` and `&` encoded
- *   as character references (and CharRefs included in their
- *   "HTML" form), suitable for including in a string of HTML
- * * `HTML.TEXTMODE.ATTRIBUTE` - a string with `"` and `&` encoded
- *   as character references (and CharRefs included in their
- *   "HTML" form), suitable for including in an HTML attribute
- *   value surrounded by double quotes
- */
 
 HTML.toText = function (content, textMode) {
   if (! textMode)
@@ -17066,6 +16653,7 @@ LocalCollection.Cursor.prototype.map = function (callback, thisArg) {
  * @method  fetch
  * @instance
  * @locus Anywhere
+ * @returns {Object[]}
  */
 LocalCollection.Cursor.prototype.fetch = function () {
   var self = this;
@@ -18873,7 +18461,7 @@ makeLookupFunction = function (key, options) {
     lookupRest = makeLookupFunction(parts.slice(1).join('.'));
   }
 
-  var elideUnnecessaryFields = function (retVal) {
+  var omitUnnecessaryFields = function (retVal) {
     if (!retVal.dontIterate)
       delete retVal.dontIterate;
     if (retVal.arrayIndices && !retVal.arrayIndices.length)
@@ -18916,7 +18504,7 @@ makeLookupFunction = function (key, options) {
     // selectors to iterate over it.  eg, {'a.0': 5} does not match {a: [[5]]}.
     // So in that case, we mark the return value as "don't iterate".
     if (!lookupRest) {
-      return [elideUnnecessaryFields({
+      return [omitUnnecessaryFields({
         value: firstLevel,
         dontIterate: isArray(doc) && isArray(firstLevel),
         arrayIndices: arrayIndices})];
@@ -18931,7 +18519,7 @@ makeLookupFunction = function (key, options) {
     if (!isIndexable(firstLevel)) {
       if (isArray(doc))
         return [];
-      return [elideUnnecessaryFields({value: undefined,
+      return [omitUnnecessaryFields({value: undefined,
                                       arrayIndices: arrayIndices})];
     }
 
@@ -21310,6 +20898,10 @@ var Blaze, UI, Handlebars, AttributeHandler, makeAttributeHandler, ElementAttrib
 (function () {
 
                                                                                                                        //
+/**
+ * @namespace Blaze
+ * @summary The namespace for all Blaze-related methods and classes.
+ */
 Blaze = {};
 
 // Utility to HTML-escape a string.  Included for legacy reasons.
@@ -22924,6 +22516,15 @@ Blaze.View = function (name, render) {
   this._isInRender = false;
   this.parentView = null;
   this._domrange = null;
+  // This flag is normally set to false except for the cases when view's parent
+  // was generated as part of expanding some syntactic sugar expressions or
+  // methods.
+  // Ex.: Blaze.renderWithData is an equivalent to creating a view with regular
+  // Blaze.render and wrapping it into {{#with data}}{{/with}} view. Since the
+  // users don't know anything about these generated parent views, Blaze needs
+  // this information to be available on views to make smarter decisions. For
+  // example: removing the generated parent view with the view on Blaze.remove.
+  this._hasGeneratedParent = false;
 
   this.renderCount = 0;
 };
@@ -23248,6 +22849,7 @@ Blaze._isContentEqual = function (a, b) {
 /**
  * @summary The View corresponding to the current template helper, event handler, callback, or autorun.  If there isn't one, `null`.
  * @locus Client
+ * @type {Blaze.View}
  */
 Blaze.currentView = null;
 
@@ -23386,7 +22988,7 @@ Blaze.renderWithData = function (content, data, parentElement, nextNode, parentV
   // We defer the handling of optional arguments to Blaze.render.  At this point,
   // `nextNode` may actually be `parentView`.
   return Blaze.render(Blaze._TemplateWith(data, contentAsFunc(content)),
-                      parentElement, nextNode, parentView);
+                          parentElement, nextNode, parentView);
 };
 
 /**
@@ -23398,11 +23000,15 @@ Blaze.remove = function (view) {
   if (! (view && (view._domrange instanceof Blaze._DOMRange)))
     throw new Error("Expected template rendered with Blaze.render");
 
-  if (! view.isDestroyed) {
-    var range = view._domrange;
-    if (range.attached && ! range.parentRange)
-      range.detach();
-    range.destroy();
+  while (view) {
+    if (! view.isDestroyed) {
+      var range = view._domrange;
+      if (range.attached && ! range.parentRange)
+        range.detach();
+      range.destroy();
+    }
+
+    view = view._hasGeneratedParent && view.parentView;
   }
 };
 
@@ -23812,7 +23418,7 @@ Blaze.Each = function (argFunc, contentFunc, elseFunc) {
   return eachView;
 };
 
-Blaze._TemplateWith = function (arg, contentBlock) {
+Blaze._TemplateWith = function (arg, contentFunc) {
   var w;
 
   var argFunc = arg;
@@ -23845,7 +23451,23 @@ Blaze._TemplateWith = function (arg, contentBlock) {
     }
   };
 
-  w = Blaze.With(wrappedArgFunc, contentBlock);
+  var wrappedContentFunc = function () {
+    var content = contentFunc.call(this);
+
+    // Since we are generating the Blaze._TemplateWith view for the
+    // user, set the flag on the child view.  If `content` is a template,
+    // construct the View so that we can set the flag.
+    if (content instanceof Blaze.Template) {
+      content = content.constructView();
+    }
+    if (content instanceof Blaze.View) {
+      content._hasGeneratedParent = true;
+    }
+
+    return content;
+  };
+
+  w = Blaze.With(wrappedArgFunc, wrappedContentFunc);
   w.__isTemplateWith = true;
   return w;
 };
@@ -24012,6 +23634,10 @@ Blaze.View.prototype.lookup = function (name, _options) {
 // Implement Spacebars' {{../..}}.
 // @param height {Number} The number of '..'s
 Blaze._parentData = function (height, _functionWrapped) {
+  // If height is null or undefined, we default to 1, the first parent.
+  if (height == null) {
+    height = 1;
+  }
   var theWith = Blaze.getView('with');
   for (var i = 0; (i < height) && theWith; i++) {
     theWith = Blaze.getView(theWith, 'with');
@@ -24220,6 +23846,7 @@ Blaze.TemplateInstance = function (view) {
    * @instance
    * @summary The [View](#blaze_view) object for this invocation of the template.
    * @locus Client
+   * @type {Blaze.View}
    */
   this.view = view;
   this.data = null;
@@ -24230,6 +23857,7 @@ Blaze.TemplateInstance = function (view) {
    * @instance
    * @summary The first top-level DOM node in this template instance.
    * @locus Client
+   * @type {DOMNode}
    */
   this.firstNode = null;
 
@@ -24239,6 +23867,7 @@ Blaze.TemplateInstance = function (view) {
    * @instance
    * @summary The last top-level DOM node in this template instance.
    * @locus Client
+   * @type {DOMNode}
    */
   this.lastNode = null;
 };
@@ -24247,6 +23876,7 @@ Blaze.TemplateInstance = function (view) {
  * @summary Find all elements matching `selector` in this template instance, and return them as a JQuery object.
  * @locus Client
  * @param {String} selector The CSS selector to match, scoped to the template contents.
+ * @returns {DOMNode[]}
  */
 Blaze.TemplateInstance.prototype.$ = function (selector) {
   var view = this.view;
@@ -24259,6 +23889,7 @@ Blaze.TemplateInstance.prototype.$ = function (selector) {
  * @summary Find all elements matching `selector` in this template instance.
  * @locus Client
  * @param {String} selector The CSS selector to match, scoped to the template contents.
+ * @returns {DOMElement[]}
  */
 Blaze.TemplateInstance.prototype.findAll = function (selector) {
   return Array.prototype.slice.call(this.$(selector));
@@ -24268,6 +23899,7 @@ Blaze.TemplateInstance.prototype.findAll = function (selector) {
  * @summary Find one element matching `selector` in this template instance.
  * @locus Client
  * @param {String} selector The CSS selector to match, scoped to the template contents.
+ * @returns {DOMElement}
  */
 Blaze.TemplateInstance.prototype.find = function (selector) {
   var result = this.$(selector);
@@ -24325,6 +23957,7 @@ Template.prototype.events = function (eventMap) {
  * @memberOf Template
  * @summary The [template instance](#template_inst) corresponding to the current template helper, event handler, callback, or autorun.  If there isn't one, `null`.
  * @locus Client
+ * @returns Blaze.TemplateInstance
  */
 Template.instance = function () {
   var view = Blaze.currentView;
@@ -24352,7 +23985,7 @@ Template.currentData = Blaze.getData;
  * @summary Accesses other data contexts that enclose the current data context.
  * @locus Client
  * @function
- * @param {Integer} numLevels The number of levels beyond the current data context to look.
+ * @param {Integer} [numLevels] The number of levels beyond the current data context to look. Defaults to 1.
  */
 Template.parentData = Blaze._parentData;
 
@@ -28464,6 +28097,7 @@ SpacebarsCompiler = {};
 // - `"BLOCKOPEN"` - `{{#foo}}`
 // - `"BLOCKCLOSE"` - `{{/foo}}`
 // - `"ELSE"` - `{{else}}`
+// - `"ESCAPE"` - `{{|`, `{{{|`, `{{{{|` and so on
 //
 // Besides `type`, the mandatory properties of a TemplateTag are:
 //
@@ -28504,7 +28138,11 @@ var makeStacheTagStartRegex = function (r) {
                     r.ignoreCase ? 'i' : '');
 };
 
+// "starts" regexes are used to see what type of template
+// tag the parser is looking at.  They must match a non-empty
+// result, but not the interesting part of the tag.
 var starts = {
+  ESCAPE: /^\{\{(?=\{*\|)/,
   ELSE: makeStacheTagStartRegex(/^\{\{\s*else(?=[\s}])/i),
   DOUBLE: makeStacheTagStartRegex(/^\{\{\s*(?!\s)/),
   TRIPLE: makeStacheTagStartRegex(/^\{\{\{\s*(?!\s)/),
@@ -28682,9 +28320,10 @@ TemplateTag.parse = function (scannerOrString) {
     error('Expected ' + what);
   };
 
-  // must do ELSE first; order of others doesn't matter
-
-  if (run(starts.ELSE)) type = 'ELSE';
+  // must do ESCAPE first, immediately followed by ELSE
+  // order of others doesn't matter
+  if (run(starts.ESCAPE)) type = 'ESCAPE';
+  else if (run(starts.ELSE)) type = 'ELSE';
   else if (run(starts.DOUBLE)) type = 'DOUBLE';
   else if (run(starts.TRIPLE)) type = 'TRIPLE';
   else if (run(starts.BLOCKCOMMENT)) type = 'BLOCKCOMMENT';
@@ -28715,6 +28354,9 @@ TemplateTag.parse = function (scannerOrString) {
   } else if (type === 'ELSE') {
     if (! run(ends.DOUBLE))
       expected('`}}`');
+  } else if (type === 'ESCAPE') {
+    var result = run(/^\{*\|/);
+    tag.value = '{{' + result.slice(0, -1);
   } else {
     // DOUBLE, TRIPLE, BLOCKOPEN, INCLUSION
     tag.path = scanPath();
@@ -28897,7 +28539,7 @@ var validateTag = function (ttag, scanner) {
 
   var position = ttag.position || TEMPLATE_TAG_POSITION.ELEMENT;
   if (position === TEMPLATE_TAG_POSITION.IN_ATTRIBUTE) {
-    if (ttag.type === 'DOUBLE') {
+    if (ttag.type === 'DOUBLE' || ttag.type === 'ESCAPE') {
       return;
     } else if (ttag.type === 'BLOCKOPEN') {
       var path = ttag.path;
@@ -29283,6 +28925,8 @@ _.extend(CodeGen.prototype, {
 
           return BlazeTools.EmitCode(includeCode);
         }
+      } else if (tag.type === 'ESCAPE') {
+        return tag.value;
       } else {
         // Can't get here; TemplateTag validation should catch any
         // inappropriate tag types that might come out of the parser.
@@ -29591,6 +29235,8 @@ Package['spacebars-compiler'] = {
 /* Imports */
 var Meteor = Package.meteor.Meteor;
 var HTML = Package.htmljs.HTML;
+var Tracker = Package.tracker.Tracker;
+var Deps = Package.tracker.Deps;
 var Blaze = Package.blaze.Blaze;
 var UI = Package.blaze.UI;
 var Handlebars = Package.blaze.Handlebars;

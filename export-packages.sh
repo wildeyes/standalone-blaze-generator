@@ -3,7 +3,7 @@
 # exit on errors
 set -e
 
-METEOR=~/meteor/meteor
+METEOR=$(which meteor)
 
 rm -rf app-for-export
 $METEOR create app-for-export && cd app-for-export
